@@ -2,7 +2,7 @@ import express from "express";
 import { getClient } from "../db";
 import UserProfile, {
   CityVote,
-  Friend,
+  Follow,
   Preferences,
   UserTrip,
 } from "../models/UserProfile";
@@ -141,23 +141,39 @@ userRouter.put("/:uid/dislikes", async (req, res) => {
   }
 });
 
-userRouter.put("/:uid/add-friend", async (req, res) => {
+userRouter.put("/:uid/add-following", async (req, res) => {
   try {
     const client = await getClient();
     const uid: string | undefined = req.params.uid;
-    const newFriend: Friend = req.body;
+    const following: Follow = req.body;
     await client
       .db()
       .collection<UserProfile>("users")
-      .updateOne({ uid }, { $push: { friends: newFriend } });
+      .updateOne({ uid }, { $push: { following } });
     res.status(200);
-    res.json(newFriend);
+    res.json(following);
   } catch (err) {
     errorResponse(err, res);
   }
 });
 
-userRouter.put("/:userUid/:otherUid/delete-friend", async (req, res) => {
+userRouter.put("/:uid/add-follower", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string | undefined = req.params.uid;
+    const follower: Follow = req.body;
+    await client
+      .db()
+      .collection<UserProfile>("users")
+      .updateOne({ uid }, { $push: { followers: follower } });
+    res.status(200);
+    res.json(follower);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+userRouter.put("/:userUid/:otherUid/remove-following", async (req, res) => {
   try {
     const client = await getClient();
     const userUid: string | undefined = req.params.userUid;
@@ -165,14 +181,14 @@ userRouter.put("/:userUid/:otherUid/delete-friend", async (req, res) => {
     await client
       .db()
       .collection<UserProfile>("users")
-      .updateOne({ uid: userUid }, { $pull: { friends: { uid: otherUid } } });
+      .updateOne({ uid: userUid }, { $pull: { following: { uid: otherUid } } });
     res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
   }
 });
 
-userRouter.put("/:userUid/:otherUid/accept-friend", async (req, res) => {
+userRouter.put("/:userUid/:otherUid/remove-follower", async (req, res) => {
   try {
     const client = await getClient();
     const userUid: string | undefined = req.params.userUid;
@@ -180,11 +196,7 @@ userRouter.put("/:userUid/:otherUid/accept-friend", async (req, res) => {
     await client
       .db()
       .collection<UserProfile>("users")
-      .updateOne(
-        { uid: userUid },
-        { $set: { [`friends.$[friend].friendRequestStatus`]: "accepted" } },
-        { arrayFilters: [{ "friend.uid": otherUid }] }
-      );
+      .updateOne({ uid: userUid }, { $pull: { followers: { uid: otherUid } } });
     res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
