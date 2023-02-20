@@ -1,7 +1,7 @@
 import express from "express";
 import { ObjectId } from "mongodb";
 import { getClient } from "../db";
-import Trip, { Like, Participant, Comment } from "../models/Trip";
+import Trip, { Like, Participant, Comment, Message } from "../models/Trip";
 
 const tripRouter = express.Router();
 
@@ -115,6 +115,25 @@ tripRouter.put("/:tripId/:uid/remove-participant", async (req, res) => {
         { $pull: { participants: { uid } } }
       );
     res.status(200).json("Success");
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+tripRouter.put("/:id/new-message", async (req, res) => {
+  try {
+    const client = await getClient();
+    const id: string | undefined = req.params.id;
+    const newNessage: Message = req.body.newNessage;
+    await client
+      .db()
+      .collection<Trip>("trips")
+      .updateOne(
+        { _id: new ObjectId(id) },
+        { $push: { messages: newNessage } }
+      );
+    res.status(200);
+    res.json(newNessage);
   } catch (err) {
     errorResponse(err, res);
   }

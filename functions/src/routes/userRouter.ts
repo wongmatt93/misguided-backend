@@ -3,6 +3,7 @@ import { getClient } from "../db";
 import UserProfile, {
   CityVote,
   Follow,
+  Notification,
   Preferences,
   UserTrip,
 } from "../models/UserProfile";
@@ -54,14 +55,19 @@ userRouter.get("/:uid/uid", async (req, res) => {
   }
 });
 
-userRouter.get("/:email/email", async (req, res) => {
+userRouter.get("/:username/username", async (req, res) => {
   try {
-    const email: string = req.params.email;
+    const username: string = req.params.username;
     const client = await getClient();
     const result = await client
       .db()
       .collection<UserProfile>("users")
-      .findOne({ email });
+      .findOne({
+        username: {
+          $regex: username,
+          $options: "i",
+        },
+      });
     res.json(result);
   } catch (err) {
     errorResponse(err, res);
@@ -74,6 +80,21 @@ userRouter.post("/", async (req, res) => {
     const client = await getClient();
     await client.db().collection<UserProfile>("users").insertOne(newProfile);
     res.status(200).json(newProfile);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+userRouter.put("/:uid/update-username", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string | undefined = req.params.uid;
+    const username: string | undefined = req.body.username;
+    await client
+      .db()
+      .collection<UserProfile>("users")
+      .updateOne({ uid }, { $set: { username } });
+    res.status(200).json(username);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -264,6 +285,22 @@ userRouter.put("/:uid/:tripId/delete-trip", async (req, res) => {
       .updateOne({ uid }, { $pull: { trips: { tripId } } });
     res.status(200);
     res.json("Success");
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+userRouter.put("/:uid/add-notification", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string | undefined = req.params.uid;
+    const newNotification: Notification = req.body;
+    await client
+      .db()
+      .collection<UserProfile>("users")
+      .updateOne({ uid }, { $push: { notifications: newNotification } });
+    res.status(200);
+    res.json(newNotification);
   } catch (err) {
     errorResponse(err, res);
   }

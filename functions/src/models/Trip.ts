@@ -14,6 +14,12 @@ export interface Participant {
   uid: string;
 }
 
+export interface Message {
+  uid: string;
+  text: string;
+  date: string;
+}
+
 interface SingleDaySchedule {
   breakfast: string;
   breakfastPhoto: string;
@@ -53,6 +59,7 @@ export default interface Trip {
   schedule: SingleDaySchedule[];
   photos: string[];
   participants: Participant[];
+  messages: Message[];
   completed: boolean;
   likes: Like[];
   comments: Comment[];
