@@ -20,6 +20,7 @@ export interface Notification {
   type: string;
   date: string;
   read: boolean;
+  tripId: string;
 }
 
 export interface Preferences {

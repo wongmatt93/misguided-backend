@@ -306,4 +306,28 @@ userRouter.put("/:uid/add-notification", async (req, res) => {
   }
 });
 
+userRouter.put("/:uid/:notifUid/:date/read-notification", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string | undefined = req.params.uid;
+    const notifUid: string | undefined = req.params.notifUid;
+    const date: string | undefined = req.params.date;
+    await client
+      .db()
+      .collection<UserProfile>("users")
+      .updateOne(
+        { uid },
+        { $set: { [`notifications.$[notification].read`]: true } },
+        {
+          arrayFilters: [
+            { "notification.uid": notifUid, "notification.date": date },
+          ],
+        }
+      );
+    res.status(200).json("Success");
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
 export default userRouter;
