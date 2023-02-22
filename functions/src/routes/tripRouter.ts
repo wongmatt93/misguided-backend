@@ -124,16 +124,16 @@ tripRouter.put("/:id/new-message", async (req, res) => {
   try {
     const client = await getClient();
     const id: string | undefined = req.params.id;
-    const newNessage: Message = req.body.newNessage;
+    const newMessage: Message = req.body.newMessage;
     await client
       .db()
       .collection<Trip>("trips")
       .updateOne(
         { _id: new ObjectId(id) },
-        { $push: { messages: newNessage } }
+        { $push: { messages: newMessage } }
       );
     res.status(200);
-    res.json(newNessage);
+    res.json(newMessage);
   } catch (err) {
     errorResponse(err, res);
   }
