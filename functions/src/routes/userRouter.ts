@@ -2,7 +2,6 @@ import express from "express";
 import { getClient } from "../db";
 import UserProfile, {
   CityVote,
-  Follow,
   Notification,
   Preferences,
   UserTrip,
@@ -162,33 +161,33 @@ userRouter.put("/:uid/dislikes", async (req, res) => {
   }
 });
 
-userRouter.put("/:uid/add-following", async (req, res) => {
+userRouter.put("/:uid/:otherUid/add-following", async (req, res) => {
   try {
     const client = await getClient();
     const uid: string | undefined = req.params.uid;
-    const following: Follow = req.body;
+    const newFollowing: string | undefined = req.params.otherUid;
     await client
       .db()
       .collection<UserProfile>("users")
-      .updateOne({ uid }, { $push: { following } });
+      .updateOne({ uid }, { $push: { followingUids: newFollowing } });
     res.status(200);
-    res.json(following);
+    res.json(newFollowing);
   } catch (err) {
     errorResponse(err, res);
   }
 });
 
-userRouter.put("/:uid/add-follower", async (req, res) => {
+userRouter.put("/:uid/:otherUid/add-follower", async (req, res) => {
   try {
     const client = await getClient();
     const uid: string | undefined = req.params.uid;
-    const follower: Follow = req.body;
+    const newFollower: string | undefined = req.params.otherUid;
     await client
       .db()
       .collection<UserProfile>("users")
-      .updateOne({ uid }, { $push: { followers: follower } });
+      .updateOne({ uid }, { $push: { followersUids: newFollower } });
     res.status(200);
-    res.json(follower);
+    res.json(newFollower);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -202,7 +201,7 @@ userRouter.put("/:userUid/:otherUid/remove-following", async (req, res) => {
     await client
       .db()
       .collection<UserProfile>("users")
-      .updateOne({ uid: userUid }, { $pull: { following: { uid: otherUid } } });
+      .updateOne({ uid: userUid }, { $pull: { followingUids: otherUid } });
     res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
@@ -217,7 +216,7 @@ userRouter.put("/:userUid/:otherUid/remove-follower", async (req, res) => {
     await client
       .db()
       .collection<UserProfile>("users")
-      .updateOne({ uid: userUid }, { $pull: { followers: { uid: otherUid } } });
+      .updateOne({ uid: userUid }, { $pull: { followersUids: otherUid } });
     res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);

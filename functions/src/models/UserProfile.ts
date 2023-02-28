@@ -11,10 +11,6 @@ export interface CityVote {
   photo: string;
 }
 
-export interface Follow {
-  uid: string;
-}
-
 export interface Notification {
   uid: string;
   type: string;
@@ -56,8 +52,8 @@ export default interface UserProfile {
   photoURL: string | null;
   hometownUid: string | null;
   preferences: Preferences | null;
-  followers: Follow[];
-  following: Follow[];
+  followersUids: string[];
+  followingUids: string[];
   likes: CityVote[];
   dislikes: CityVote[];
   trips: UserTrip[];
