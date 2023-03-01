@@ -52,8 +52,8 @@ export default interface Trip {
   _id?: ObjectId;
   creatorUid: string;
   cityId: string;
-  date1: string;
-  date2: string;
+  startDate: string;
+  endDate: string;
   hotel: string | null;
   schedule: SingleDaySchedule[];
   photos: string[];
