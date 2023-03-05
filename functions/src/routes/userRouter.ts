@@ -19,7 +19,7 @@ userRouter.get("/", async (req, res) => {
     const client = await getClient();
     const cursor = client.db().collection<UserProfile>("users").find();
     const results = await cursor.toArray();
-    res.json(results);
+    res.status(200).json(results);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -34,7 +34,7 @@ userRouter.get("/users-by-uid/:uids", async (req, res) => {
       .collection<UserProfile>("users")
       .find({ uid: { $in: uids } });
     const results = await cursor.toArray();
-    res.json(results);
+    res.status(200).json(results);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -48,7 +48,7 @@ userRouter.get("/:uid/uid", async (req, res) => {
       .db()
       .collection<UserProfile>("users")
       .findOne({ uid });
-    res.json(result);
+    res.status(200).json(result);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -67,7 +67,7 @@ userRouter.get("/:username/username", async (req, res) => {
           $options: "i",
         },
       });
-    res.json(result);
+    res.status(200).json(result);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -78,7 +78,7 @@ userRouter.post("/", async (req, res) => {
     const newProfile: UserProfile = req.body;
     const client = await getClient();
     await client.db().collection<UserProfile>("users").insertOne(newProfile);
-    res.status(200).json(newProfile);
+    res.status(201).json(newProfile);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -138,8 +138,22 @@ userRouter.put("/:uid/likes", async (req, res) => {
       .db()
       .collection<UserProfile>("users")
       .updateOne({ uid }, { $push: { likes: newCity } });
-    res.status(200);
-    res.json(newCity);
+    res.status(200).json(newCity);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+userRouter.put("/:uid/:cityId/remove-like", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string | undefined = req.params.uid;
+    const cityId: string | undefined = req.params.cityId;
+    await client
+      .db()
+      .collection<UserProfile>("users")
+      .updateOne({ uid }, { $pull: { likes: { cityId } } });
+    res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
   }
@@ -154,8 +168,21 @@ userRouter.put("/:uid/dislikes", async (req, res) => {
       .db()
       .collection<UserProfile>("users")
       .updateOne({ uid }, { $push: { dislikes: newCity } });
-    res.status(200);
-    res.json(newCity);
+    res.status(200).json(newCity);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+userRouter.put("/:uid/remove-all-dislikes", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string | undefined = req.params.uid;
+    await client
+      .db()
+      .collection<UserProfile>("users")
+      .updateOne({ uid }, { $pull: { dislikes: {} } });
+    res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
   }
@@ -170,8 +197,7 @@ userRouter.put("/:uid/:otherUid/add-following", async (req, res) => {
       .db()
       .collection<UserProfile>("users")
       .updateOne({ uid }, { $push: { followingUids: newFollowing } });
-    res.status(200);
-    res.json(newFollowing);
+    res.status(200).json(newFollowing);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -186,8 +212,7 @@ userRouter.put("/:uid/:otherUid/add-follower", async (req, res) => {
       .db()
       .collection<UserProfile>("users")
       .updateOne({ uid }, { $push: { followersUids: newFollower } });
-    res.status(200);
-    res.json(newFollower);
+    res.status(200).json(newFollower);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -247,8 +272,7 @@ userRouter.put("/:uid/add-trip", async (req, res) => {
       .db()
       .collection<UserProfile>("users")
       .updateOne({ uid }, { $push: { trips: newTrip } });
-    res.status(200);
-    res.json(newTrip);
+    res.status(200).json(newTrip);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -282,8 +306,7 @@ userRouter.put("/:uid/:tripId/delete-trip", async (req, res) => {
       .db()
       .collection<UserProfile>("users")
       .updateOne({ uid }, { $pull: { trips: { tripId } } });
-    res.status(200);
-    res.json("Success");
+    res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
   }
@@ -298,8 +321,7 @@ userRouter.put("/:uid/add-notification", async (req, res) => {
       .db()
       .collection<UserProfile>("users")
       .updateOne({ uid }, { $push: { notifications: newNotification } });
-    res.status(200);
-    res.json(newNotification);
+    res.status(200).json(newNotification);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -323,6 +345,69 @@ userRouter.put("/:uid/:notifUid/:date/read-notification", async (req, res) => {
           ],
         }
       );
+    res.status(200).json("Success");
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+userRouter.put(
+  "/:uid/:notifUid/:date/unread-notification",
+  async (req, res) => {
+    try {
+      const client = await getClient();
+      const uid: string | undefined = req.params.uid;
+      const notifUid: string | undefined = req.params.notifUid;
+      const date: string | undefined = req.params.date;
+      await client
+        .db()
+        .collection<UserProfile>("users")
+        .updateOne(
+          { uid },
+          { $set: { [`notifications.$[notification].read`]: false } },
+          {
+            arrayFilters: [
+              { "notification.uid": notifUid, "notification.date": date },
+            ],
+          }
+        );
+      res.status(200).json("Success");
+    } catch (err) {
+      errorResponse(err, res);
+    }
+  }
+);
+
+userRouter.put(
+  "/:uid/:notifUid/:date/delete-notification",
+  async (req, res) => {
+    try {
+      const client = await getClient();
+      const uid: string | undefined = req.params.uid;
+      const notifUid: string | undefined = req.params.notifUid;
+      const date: string | undefined = req.params.date;
+      await client
+        .db()
+        .collection<UserProfile>("users")
+        .updateOne(
+          { uid },
+          { $pull: { notifications: { uid: notifUid, date } } }
+        );
+      res.status(200).json("Success");
+    } catch (err) {
+      errorResponse(err, res);
+    }
+  }
+);
+
+userRouter.put("/:uid/delete-all-notifications", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string | undefined = req.params.uid;
+    await client
+      .db()
+      .collection<UserProfile>("users")
+      .updateOne({ uid }, { $pull: { notifications: {} } });
     res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
