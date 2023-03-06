@@ -5,12 +5,6 @@ export interface UserTrip {
   accepted: boolean;
 }
 
-export interface CityVote {
-  cityId: string;
-  cityName: string;
-  photo: string;
-}
-
 export interface Notification {
   uid: string;
   type: string;
@@ -54,8 +48,8 @@ export default interface UserProfile {
   preferences: Preferences | null;
   followersUids: string[];
   followingUids: string[];
-  likes: CityVote[];
-  dislikes: CityVote[];
+  likesCityIds: string[];
+  dislikesCityIds: string[];
   trips: UserTrip[];
   notifications: Notification[];
 }

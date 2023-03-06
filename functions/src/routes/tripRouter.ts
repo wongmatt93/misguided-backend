@@ -1,7 +1,7 @@
 import express from "express";
 import { ObjectId } from "mongodb";
 import { getClient } from "../db";
-import Trip, { Like, Participant, Comment, Message } from "../models/Trip";
+import Trip, { Comment, Message } from "../models/Trip";
 
 const tripRouter = express.Router();
 
@@ -83,17 +83,32 @@ tripRouter.delete("/:id", async (req, res) => {
   }
 });
 
+tripRouter.put("/:id/update-nickname", async (req, res) => {
+  try {
+    const client = await getClient();
+    const id: string | undefined = req.params.id;
+    const nickname: string | undefined = req.body.nickname;
+    await client
+      .db()
+      .collection<Trip>("trips")
+      .updateOne({ _id: new ObjectId(id) }, { $set: { nickname } });
+    res.status(200).json(nickname);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
 tripRouter.put("/:id/new-participant", async (req, res) => {
   try {
     const client = await getClient();
     const id: string | undefined = req.params.id;
-    const newParticipant: Participant = req.body.newParticipant;
+    const newParticipant: string = req.body.newParticipant;
     await client
       .db()
       .collection<Trip>("trips")
       .updateOne(
         { _id: new ObjectId(id) },
-        { $push: { participants: newParticipant } }
+        { $push: { participantsUids: newParticipant } }
       );
     res.status(200);
     res.json(newParticipant);
@@ -112,7 +127,7 @@ tripRouter.put("/:tripId/:uid/remove-participant", async (req, res) => {
       .collection<Trip>("trips")
       .updateOne(
         { _id: new ObjectId(tripId) },
-        { $pull: { participants: { uid } } }
+        { $pull: { participants: uid } }
       );
     res.status(200).json("Success");
   } catch (err) {
@@ -132,8 +147,7 @@ tripRouter.put("/:id/new-message", async (req, res) => {
         { _id: new ObjectId(id) },
         { $push: { messages: newMessage } }
       );
-    res.status(200);
-    res.json(newMessage);
+    res.status(200).json(newMessage);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -162,8 +176,7 @@ tripRouter.put("/:id/photos", async (req, res) => {
       .db()
       .collection<Trip>("trips")
       .updateOne({ _id: new ObjectId(id) }, { $push: { photos: photo } });
-    res.status(200);
-    res.json(photo);
+    res.status(200).json(photo);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -173,11 +186,11 @@ tripRouter.put("/:id/like-trip", async (req, res) => {
   try {
     const client = await getClient();
     const id: string | undefined = req.params.id;
-    const like: Like = req.body.like;
+    const like: string = req.body.like;
     await client
       .db()
       .collection<Trip>("trips")
-      .updateOne({ _id: new ObjectId(id) }, { $push: { likes: like } });
+      .updateOne({ _id: new ObjectId(id) }, { $push: { likesUids: like } });
     res.status(200).json(like);
   } catch (err) {
     errorResponse(err, res);
@@ -192,7 +205,7 @@ tripRouter.put("/:tripId/:uid/unlike-trip", async (req, res) => {
     await client
       .db()
       .collection<Trip>("trips")
-      .updateOne({ _id: new ObjectId(tripId) }, { $pull: { likes: { uid } } });
+      .updateOne({ _id: new ObjectId(tripId) }, { $pull: { likesUids: uid } });
     res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);

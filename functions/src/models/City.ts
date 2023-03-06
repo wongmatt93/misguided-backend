@@ -1,9 +1,5 @@
 import { ObjectId } from "mongodb";
 
-export interface Visitor {
-  uid: string;
-}
-
 export interface Rating {
   uid: string;
   rating: number;
@@ -20,5 +16,5 @@ export default interface City {
   knownFor: string[];
   photoURL: string;
   ratings: Rating[];
-  visitors: Visitor[];
+  visitorsUids: string[];
 }

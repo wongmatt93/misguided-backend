@@ -1,7 +1,7 @@
 import express from "express";
 import { ObjectId } from "mongodb";
 import { getClient } from "../db";
-import City, { Rating, Visitor } from "../models/City";
+import City, { Rating } from "../models/City";
 
 const cityRouter = express.Router();
 
@@ -87,13 +87,13 @@ cityRouter.put("/:id/add-visitor", async (req, res) => {
   try {
     const client = await getClient();
     const id: string | undefined = req.params.id;
-    const newVisitor: Visitor = req.body;
+    const newVisitor: string = req.body.newVisitor;
     await client
       .db()
       .collection<City>("cities")
       .updateOne(
         { _id: new ObjectId(id) },
-        { $push: { visitors: newVisitor } }
+        { $push: { visitorsUids: newVisitor } }
       );
     res.status(200);
     res.json(newVisitor);

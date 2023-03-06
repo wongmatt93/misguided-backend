@@ -1,7 +1,6 @@
 import express from "express";
 import { getClient } from "../db";
 import UserProfile, {
-  CityVote,
   Notification,
   Preferences,
   UserTrip,
@@ -99,6 +98,21 @@ userRouter.put("/:uid/update-username", async (req, res) => {
   }
 });
 
+userRouter.put("/:uid/update-phone", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string | undefined = req.params.uid;
+    const phoneNumber: string | undefined = req.body.phoneNumber;
+    await client
+      .db()
+      .collection<UserProfile>("users")
+      .updateOne({ uid }, { $set: { phoneNumber } });
+    res.status(200).json(phoneNumber);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
 userRouter.put("/:uid/update-photo", async (req, res) => {
   try {
     const client = await getClient();
@@ -133,11 +147,11 @@ userRouter.put("/:uid/likes", async (req, res) => {
   try {
     const client = await getClient();
     const uid: string | undefined = req.params.uid;
-    const newCity: CityVote = req.body;
+    const newCity: string = req.body.newCity;
     await client
       .db()
       .collection<UserProfile>("users")
-      .updateOne({ uid }, { $push: { likes: newCity } });
+      .updateOne({ uid }, { $push: { likesCityIds: newCity } });
     res.status(200).json(newCity);
   } catch (err) {
     errorResponse(err, res);
@@ -152,7 +166,7 @@ userRouter.put("/:uid/:cityId/remove-like", async (req, res) => {
     await client
       .db()
       .collection<UserProfile>("users")
-      .updateOne({ uid }, { $pull: { likes: { cityId } } });
+      .updateOne({ uid }, { $pull: { likesCityIds: cityId } });
     res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
@@ -163,11 +177,11 @@ userRouter.put("/:uid/dislikes", async (req, res) => {
   try {
     const client = await getClient();
     const uid: string | undefined = req.params.uid;
-    const newCity: CityVote = req.body;
+    const newCity: string = req.body.newCity;
     await client
       .db()
       .collection<UserProfile>("users")
-      .updateOne({ uid }, { $push: { dislikes: newCity } });
+      .updateOne({ uid }, { $push: { dislikesCityIds: newCity } });
     res.status(200).json(newCity);
   } catch (err) {
     errorResponse(err, res);
