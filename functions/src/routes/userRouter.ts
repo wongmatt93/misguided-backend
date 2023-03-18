@@ -195,7 +195,7 @@ userRouter.put("/:uid/remove-all-dislikes", async (req, res) => {
     await client
       .db()
       .collection<UserProfile>("users")
-      .updateOne({ uid }, { $pull: { dislikes: {} } });
+      .updateOne({ uid }, { $set: { dislikesCityIds: [] } });
     res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
