@@ -72,6 +72,28 @@ userRouter.get("/:username/username", async (req, res) => {
   }
 });
 
+userRouter.get("/:username/:search/search", async (req, res) => {
+  try {
+    const username: string = req.params.username;
+    const search: string = req.params.search;
+    const client = await getClient();
+    const cursor = client
+      .db()
+      .collection<UserProfile>("users")
+      .find({
+        username: {
+          $regex: search,
+          $options: "i",
+          $not: { $regex: username },
+        },
+      });
+    const result = await cursor.toArray();
+    res.status(200).json(result);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
 userRouter.post("/", async (req, res) => {
   try {
     const newProfile: UserProfile = req.body;

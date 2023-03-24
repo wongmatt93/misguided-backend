@@ -127,7 +127,7 @@ tripRouter.put("/:tripId/:uid/remove-participant", async (req, res) => {
       .collection<Trip>("trips")
       .updateOne(
         { _id: new ObjectId(tripId) },
-        { $pull: { participants: uid } }
+        { $pull: { participantsUids: uid } }
       );
     res.status(200).json("Success");
   } catch (err) {
