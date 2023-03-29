@@ -98,6 +98,21 @@ tripRouter.put("/:id/update-nickname", async (req, res) => {
   }
 });
 
+tripRouter.put("/:id/update-creator", async (req, res) => {
+  try {
+    const client = await getClient();
+    const id: string | undefined = req.params.id;
+    const newUid: string | undefined = req.body.newUid;
+    await client
+      .db()
+      .collection<Trip>("trips")
+      .updateOne({ _id: new ObjectId(id) }, { $set: { creatorUid: newUid } });
+    res.status(200).json(newUid);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
 tripRouter.put("/:id/new-participant", async (req, res) => {
   try {
     const client = await getClient();

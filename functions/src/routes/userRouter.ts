@@ -105,6 +105,17 @@ userRouter.post("/", async (req, res) => {
   }
 });
 
+userRouter.delete("/:uid", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string = req.params.uid;
+    await client.db().collection<UserProfile>("users").deleteOne({ uid });
+    res.sendStatus(204);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
 userRouter.put("/:uid/update-username", async (req, res) => {
   try {
     const client = await getClient();
