@@ -1,10 +1,7 @@
 import express from "express";
+import { ObjectId } from "mongodb";
 import { getClient } from "../db";
-import UserProfile, {
-  Notification,
-  Preferences,
-  UserTrip,
-} from "../models/UserProfile";
+import UserProfile, { Notification, UserTrip } from "../models/UserProfile";
 
 const userRouter = express.Router();
 
@@ -116,120 +113,19 @@ userRouter.delete("/:uid", async (req, res) => {
   }
 });
 
-userRouter.put("/:uid/update-username", async (req, res) => {
+userRouter.put("/:uid", async (req, res) => {
   try {
     const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    const username: string | undefined = req.body.username;
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne({ uid }, { $set: { username } });
-    res.status(200).json(username);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
+    const uid: string = req.params.uid;
+    const userProfile: UserProfile = req.body.userProfile;
 
-userRouter.put("/:uid/update-phone", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    const phoneNumber: string | undefined = req.body.phoneNumber;
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne({ uid }, { $set: { phoneNumber } });
-    res.status(200).json(phoneNumber);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
+    userProfile._id = new ObjectId(userProfile._id);
 
-userRouter.put("/:uid/update-photo", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    const photoURL: string | undefined = req.body.photoURL;
     await client
       .db()
       .collection<UserProfile>("users")
-      .updateOne({ uid }, { $set: { photoURL } });
-    res.status(200).json(photoURL);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-userRouter.put("/:uid/update-hometown", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    const hometownId: string | undefined = req.body.hometownId;
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne({ uid }, { $set: { hometownId } });
-    res.status(200).json(hometownId);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-userRouter.put("/:uid/likes", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    const newCity: string = req.body.newCity;
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne({ uid }, { $push: { likesCityIds: newCity } });
-    res.status(200).json(newCity);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-userRouter.put("/:uid/:cityId/remove-like", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    const cityId: string | undefined = req.params.cityId;
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne({ uid }, { $pull: { likesCityIds: cityId } });
-    res.status(200).json("Success");
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-userRouter.put("/:uid/dislikes", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    const newCity: string = req.body.newCity;
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne({ uid }, { $push: { dislikesCityIds: newCity } });
-    res.status(200).json(newCity);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-userRouter.put("/:uid/remove-all-dislikes", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne({ uid }, { $set: { dislikesCityIds: [] } });
-    res.status(200).json("Success");
+      .replaceOne({ uid }, userProfile);
+    res.status(200).json(userProfile);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -290,21 +186,6 @@ userRouter.put("/:userUid/:otherUid/remove-follower", async (req, res) => {
       .collection<UserProfile>("users")
       .updateOne({ uid: userUid }, { $pull: { followersUids: otherUid } });
     res.status(200).json("Success");
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-userRouter.put("/:uid/preferences", async (req, res) => {
-  try {
-    const uid: string = req.params.uid;
-    const preferences: Preferences = req.body;
-    const client = await getClient();
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne({ uid }, { $set: { preferences } });
-    res.status(200).json(preferences);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -446,19 +327,5 @@ userRouter.put(
     }
   }
 );
-
-userRouter.put("/:uid/delete-all-notifications", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne({ uid }, { $pull: { notifications: {} } });
-    res.status(200).json("Success");
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
 
 export default userRouter;
