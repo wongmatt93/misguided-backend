@@ -1,7 +1,7 @@
 import express from "express";
 import { ObjectId } from "mongodb";
 import { getClient } from "../db";
-import UserProfile, { Notification, UserTrip } from "../models/UserProfile";
+import UserProfile, { Notification } from "../models/UserProfile";
 
 const userRouter = express.Router();
 
@@ -195,31 +195,12 @@ userRouter.put("/:uid/add-trip", async (req, res) => {
   try {
     const client = await getClient();
     const uid: string | undefined = req.params.uid;
-    const newTrip: UserTrip = req.body;
+    const newTripId: string = req.body.newTripId;
     await client
       .db()
       .collection<UserProfile>("users")
-      .updateOne({ uid }, { $push: { trips: newTrip } });
-    res.status(200).json(newTrip);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-userRouter.put("/:uid/:tripId/accept-trip", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    const tripId: string | undefined = req.params.tripId;
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne(
-        { uid },
-        { $set: { [`trips.$[trip].accepted`]: true } },
-        { arrayFilters: [{ "trip.tripId": tripId }] }
-      );
-    res.status(200).json("Success");
+      .updateOne({ uid }, { $push: { tripIds: newTripId } });
+    res.status(200).json(newTripId);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -233,7 +214,7 @@ userRouter.put("/:uid/:tripId/delete-trip", async (req, res) => {
     await client
       .db()
       .collection<UserProfile>("users")
-      .updateOne({ uid }, { $pull: { trips: { tripId } } });
+      .updateOne({ uid }, { $pull: { tripIds: tripId } });
     res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);

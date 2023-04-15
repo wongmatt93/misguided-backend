@@ -1,7 +1,7 @@
 import express from "express";
 import { ObjectId } from "mongodb";
 import { getClient } from "../db";
-import Trip, { Comment, Message } from "../models/Trip";
+import Trip, { Comment, Message, Participant } from "../models/Trip";
 
 const tripRouter = express.Router();
 
@@ -117,16 +117,35 @@ tripRouter.put("/:id/new-participant", async (req, res) => {
   try {
     const client = await getClient();
     const id: string | undefined = req.params.id;
-    const newParticipant: string = req.body.newParticipant;
+    const newParticipant: Participant = req.body.newParticipant;
     await client
       .db()
       .collection<Trip>("trips")
       .updateOne(
         { _id: new ObjectId(id) },
-        { $push: { participantsUids: newParticipant } }
+        { $push: { participants: newParticipant } }
       );
     res.status(200);
     res.json(newParticipant);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+tripRouter.put("/:tripId/:uid/accept-trip", async (req, res) => {
+  try {
+    const client = await getClient();
+    const tripId: string = req.params.tripId;
+    const uid: string = req.params.uid;
+    await client
+      .db()
+      .collection<Trip>("trips")
+      .updateOne(
+        { _id: new ObjectId(tripId) },
+        { $set: { [`participants.$[participant].accepted`]: true } },
+        { arrayFilters: [{ "participant.uid": uid }] }
+      );
+    res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
   }

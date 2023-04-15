@@ -1,10 +1,5 @@
 import { ObjectId } from "mongodb";
 
-export interface UserTrip {
-  tripId: string;
-  accepted: boolean;
-}
-
 export interface Notification {
   uid: string;
   type: string;
@@ -48,8 +43,11 @@ export default interface UserProfile {
   preferences: Preferences | null;
   followersUids: string[];
   followingUids: string[];
-  likesCityIds: string[];
-  dislikesCityIds: string[];
-  trips: UserTrip[];
+  favoriteCityIds: string[];
+  hiddenCityIds: string[];
+  tripIds: string[];
   notifications: Notification[];
+  likedTripIds: string[];
+  commentedTripIds: string[];
+  visitedCityIds: string[];
 }
