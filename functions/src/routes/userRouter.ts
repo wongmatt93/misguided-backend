@@ -309,4 +309,79 @@ userRouter.put(
   }
 );
 
+userRouter.put("/:uid/like-trip", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string | undefined = req.params.uid;
+    const tripId: string = req.body.tripId;
+    await client
+      .db()
+      .collection<UserProfile>("users")
+      .updateOne({ uid }, { $push: { likedTripIds: tripId } });
+    res.status(200).json(tripId);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+userRouter.put("/:uid/unlike-trip", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string | undefined = req.params.uid;
+    const tripId: string | undefined = req.body.tripId;
+    await client
+      .db()
+      .collection<UserProfile>("users")
+      .updateOne({ uid }, { $pull: { likedTripIds: tripId } });
+    res.status(200).json("Success");
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+userRouter.put("/:uid/comment-trip", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string | undefined = req.params.uid;
+    const tripId: string = req.body.tripId;
+    await client
+      .db()
+      .collection<UserProfile>("users")
+      .updateOne({ uid }, { $push: { commentedTripIds: tripId } });
+    res.status(200).json(tripId);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+userRouter.put("/:uid/uncomment-trip", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string | undefined = req.params.uid;
+    const tripId: string | undefined = req.body.tripId;
+    await client
+      .db()
+      .collection<UserProfile>("users")
+      .updateOne({ uid }, { $pull: { commentedTripIds: tripId } });
+    res.status(200).json("Success");
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+userRouter.put("/:uid/visit-city", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string | undefined = req.params.uid;
+    const cityId: string = req.body.cityId;
+    await client
+      .db()
+      .collection<UserProfile>("users")
+      .updateOne({ uid }, { $push: { visitedCityIds: cityId } });
+    res.status(200).json(cityId);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
 export default userRouter;

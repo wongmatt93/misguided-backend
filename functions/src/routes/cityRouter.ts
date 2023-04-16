@@ -15,21 +15,21 @@ cityRouter.get("/", async (req, res) => {
     const client = await getClient();
     const cursor = client.db().collection<City>("cities").find();
     const results = await cursor.toArray();
-    res.json(results);
+    res.status(200).json(results);
   } catch (err) {
     errorResponse(err, res);
   }
 });
 
-cityRouter.get("/:id", async (req, res) => {
+cityRouter.get("/:cityId", async (req, res) => {
   try {
-    const id: string = req.params.id;
+    const cityId: string = req.params.cityId;
     const client = await getClient();
     const results = await client
       .db()
       .collection<City>("cities")
-      .findOne({ _id: new ObjectId(id) });
-    res.json(results);
+      .findOne({ _id: new ObjectId(cityId) });
+    res.status(200).json(results);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -46,57 +46,93 @@ cityRouter.post("/", async (req, res) => {
   }
 });
 
-cityRouter.put("/:id/new-rating", async (req, res) => {
+cityRouter.put("/:cityId/new-rating", async (req, res) => {
   try {
     const client = await getClient();
-    const id: string | undefined = req.params.id;
-    const newRating: Rating = req.body;
+    const cityId: string | undefined = req.params.cityId;
+    const newRating: Rating = req.body.newRating;
     await client
       .db()
       .collection<City>("cities")
-      .updateOne({ _id: new ObjectId(id) }, { $push: { ratings: newRating } });
-    res.status(200);
-    res.json(newRating);
+      .updateOne(
+        { _id: new ObjectId(cityId) },
+        { $push: { ratings: newRating } }
+      );
+    res.status(200).json(newRating);
   } catch (err) {
     errorResponse(err, res);
   }
 });
 
-cityRouter.put("/:id/:uid/:rating/update-rating", async (req, res) => {
+cityRouter.put("/:cityId/:uid/:rating/update-rating", async (req, res) => {
   try {
     const client = await getClient();
-    const id: string | undefined = req.params.id;
+    const cityId: string | undefined = req.params.cityId;
     const uid: string | undefined = req.params.uid;
     const rating: string | undefined = req.params.rating;
     await client
       .db()
       .collection<City>("cities")
       .updateOne(
-        { _id: new ObjectId(id) },
+        { _id: new ObjectId(cityId) },
         { $set: { [`ratings.$[rating].rating`]: Number(rating) } },
         { arrayFilters: [{ "rating.uid": uid }] }
       );
-    res.status(200);
-    res.json("success");
+    res.status(200).json("success");
   } catch (err) {
     errorResponse(err, res);
   }
 });
 
-cityRouter.put("/:id/add-visitor", async (req, res) => {
+cityRouter.put("/:cityId/remove-rating", async (req, res) => {
   try {
     const client = await getClient();
-    const id: string | undefined = req.params.id;
+    const cityId: string | undefined = req.params.cityId;
+    const uid: string = req.body.uid;
+    await client
+      .db()
+      .collection<City>("cities")
+      .updateOne(
+        { _id: new ObjectId(cityId) },
+        { $pull: { ratings: { uid } } }
+      );
+    res.status(200).json("Success");
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+cityRouter.put("/:cityId/add-visitor", async (req, res) => {
+  try {
+    const client = await getClient();
+    const cityId: string | undefined = req.params.cityId;
     const newVisitor: string = req.body.newVisitor;
     await client
       .db()
       .collection<City>("cities")
       .updateOne(
-        { _id: new ObjectId(id) },
+        { _id: new ObjectId(cityId) },
         { $push: { visitorsUids: newVisitor } }
       );
-    res.status(200);
-    res.json(newVisitor);
+    res.status(200).json(newVisitor);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+cityRouter.put("/:cityId/remove-visitor", async (req, res) => {
+  try {
+    const client = await getClient();
+    const cityId: string | undefined = req.params.cityId;
+    const uid: string = req.body.uid;
+    await client
+      .db()
+      .collection<City>("cities")
+      .updateOne(
+        { _id: new ObjectId(cityId) },
+        { $pull: { visitorsUids: uid } }
+      );
+    res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
   }
