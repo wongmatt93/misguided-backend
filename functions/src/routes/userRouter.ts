@@ -117,7 +117,7 @@ userRouter.put("/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const uid: string = req.params.uid;
-    const userProfile: UserProfile = req.body.userProfile;
+    const userProfile: UserProfile = req.body;
 
     userProfile._id = new ObjectId(userProfile._id);
 
@@ -191,11 +191,11 @@ userRouter.put("/:userUid/:otherUid/remove-follower", async (req, res) => {
   }
 });
 
-userRouter.put("/:uid/add-trip", async (req, res) => {
+userRouter.put("/:uid/add-trip/:tripId", async (req, res) => {
   try {
     const client = await getClient();
     const uid: string | undefined = req.params.uid;
-    const newTripId: string = req.body.newTripId;
+    const newTripId: string = req.params.tripId;
     await client
       .db()
       .collection<UserProfile>("users")
@@ -309,11 +309,11 @@ userRouter.put(
   }
 );
 
-userRouter.put("/:uid/like-trip", async (req, res) => {
+userRouter.put("/:uid/like-trip/:tripId", async (req, res) => {
   try {
     const client = await getClient();
     const uid: string | undefined = req.params.uid;
-    const tripId: string = req.body.tripId;
+    const tripId: string = req.params.tripId;
     await client
       .db()
       .collection<UserProfile>("users")
@@ -324,11 +324,11 @@ userRouter.put("/:uid/like-trip", async (req, res) => {
   }
 });
 
-userRouter.put("/:uid/unlike-trip", async (req, res) => {
+userRouter.put("/:uid/unlike-trip/:tripId", async (req, res) => {
   try {
     const client = await getClient();
     const uid: string | undefined = req.params.uid;
-    const tripId: string | undefined = req.body.tripId;
+    const tripId: string | undefined = req.params.tripId;
     await client
       .db()
       .collection<UserProfile>("users")
@@ -339,11 +339,11 @@ userRouter.put("/:uid/unlike-trip", async (req, res) => {
   }
 });
 
-userRouter.put("/:uid/comment-trip", async (req, res) => {
+userRouter.put("/:uid/comment-trip/:tripId", async (req, res) => {
   try {
     const client = await getClient();
     const uid: string | undefined = req.params.uid;
-    const tripId: string = req.body.tripId;
+    const tripId: string = req.params.tripId;
     await client
       .db()
       .collection<UserProfile>("users")
@@ -354,11 +354,11 @@ userRouter.put("/:uid/comment-trip", async (req, res) => {
   }
 });
 
-userRouter.put("/:uid/uncomment-trip", async (req, res) => {
+userRouter.put("/:uid/uncomment-trip/:tripId", async (req, res) => {
   try {
     const client = await getClient();
     const uid: string | undefined = req.params.uid;
-    const tripId: string | undefined = req.body.tripId;
+    const tripId: string | undefined = req.params.tripId;
     await client
       .db()
       .collection<UserProfile>("users")
@@ -369,11 +369,11 @@ userRouter.put("/:uid/uncomment-trip", async (req, res) => {
   }
 });
 
-userRouter.put("/:uid/visit-city", async (req, res) => {
+userRouter.put("/:uid/visit-city/:cityId", async (req, res) => {
   try {
     const client = await getClient();
     const uid: string | undefined = req.params.uid;
-    const cityId: string = req.body.cityId;
+    const cityId: string = req.params.cityId;
     await client
       .db()
       .collection<UserProfile>("users")

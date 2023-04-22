@@ -83,11 +83,11 @@ tripRouter.delete("/:id", async (req, res) => {
   }
 });
 
-tripRouter.put("/:id/update-nickname", async (req, res) => {
+tripRouter.put("/:id/update-nickname/:nickname", async (req, res) => {
   try {
     const client = await getClient();
     const id: string | undefined = req.params.id;
-    const nickname: string | undefined = req.body.nickname;
+    const nickname: string | undefined = req.params.nickname;
     await client
       .db()
       .collection<Trip>("trips")
@@ -98,11 +98,11 @@ tripRouter.put("/:id/update-nickname", async (req, res) => {
   }
 });
 
-tripRouter.put("/:id/update-creator", async (req, res) => {
+tripRouter.put("/:id/update-creator/:newUid", async (req, res) => {
   try {
     const client = await getClient();
     const id: string | undefined = req.params.id;
-    const newUid: string | undefined = req.body.newUid;
+    const newUid: string | undefined = req.params.newUid;
     await client
       .db()
       .collection<Trip>("trips")
@@ -117,7 +117,7 @@ tripRouter.put("/:id/new-participant", async (req, res) => {
   try {
     const client = await getClient();
     const id: string | undefined = req.params.id;
-    const newParticipant: Participant = req.body.newParticipant;
+    const newParticipant: Participant = req.body;
     await client
       .db()
       .collection<Trip>("trips")
@@ -173,7 +173,7 @@ tripRouter.put("/:id/new-message", async (req, res) => {
   try {
     const client = await getClient();
     const id: string | undefined = req.params.id;
-    const newMessage: Message = req.body.newMessage;
+    const newMessage: Message = req.body;
     await client
       .db()
       .collection<Trip>("trips")
@@ -216,11 +216,11 @@ tripRouter.put("/:id/photos", async (req, res) => {
   }
 });
 
-tripRouter.put("/:id/like-trip", async (req, res) => {
+tripRouter.put("/:id/like-trip/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const id: string | undefined = req.params.id;
-    const like: string = req.body.like;
+    const like: string = req.params.uid;
     await client
       .db()
       .collection<Trip>("trips")
@@ -231,7 +231,7 @@ tripRouter.put("/:id/like-trip", async (req, res) => {
   }
 });
 
-tripRouter.put("/:tripId/:uid/unlike-trip", async (req, res) => {
+tripRouter.put("/:tripId/unlike-trip/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string | undefined = req.params.tripId;
@@ -250,7 +250,7 @@ tripRouter.put("/:tripId/comment-trip", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string | undefined = req.params.tripId;
-    const comment: Comment = req.body.comment;
+    const comment: Comment = req.body;
     await client
       .db()
       .collection<Trip>("trips")
@@ -268,7 +268,7 @@ tripRouter.put("/:tripId/remove-comment-trip", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string | undefined = req.params.tripId;
-    const commentObject: Comment = req.body.comment;
+    const commentObject: Comment = req.body;
     const { uid, comment, date } = commentObject;
     await client
       .db()

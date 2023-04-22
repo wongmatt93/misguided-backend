@@ -50,7 +50,7 @@ cityRouter.put("/:cityId/new-rating", async (req, res) => {
   try {
     const client = await getClient();
     const cityId: string | undefined = req.params.cityId;
-    const newRating: Rating = req.body.newRating;
+    const newRating: Rating = req.body;
     await client
       .db()
       .collection<City>("cities")
@@ -84,11 +84,11 @@ cityRouter.put("/:cityId/:uid/:rating/update-rating", async (req, res) => {
   }
 });
 
-cityRouter.put("/:cityId/remove-rating", async (req, res) => {
+cityRouter.put("/:cityId/remove-rating/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const cityId: string | undefined = req.params.cityId;
-    const uid: string = req.body.uid;
+    const uid: string = req.params.uid;
     await client
       .db()
       .collection<City>("cities")
@@ -102,11 +102,11 @@ cityRouter.put("/:cityId/remove-rating", async (req, res) => {
   }
 });
 
-cityRouter.put("/:cityId/add-visitor", async (req, res) => {
+cityRouter.put("/:cityId/add-visitor/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const cityId: string | undefined = req.params.cityId;
-    const newVisitor: string = req.body.newVisitor;
+    const newVisitor: string = req.params.uid;
     await client
       .db()
       .collection<City>("cities")
@@ -120,11 +120,11 @@ cityRouter.put("/:cityId/add-visitor", async (req, res) => {
   }
 });
 
-cityRouter.put("/:cityId/remove-visitor", async (req, res) => {
+cityRouter.put("/:cityId/remove-visitor/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const cityId: string | undefined = req.params.cityId;
-    const uid: string = req.body.uid;
+    const uid: string = req.params.uid;
     await client
       .db()
       .collection<City>("cities")
