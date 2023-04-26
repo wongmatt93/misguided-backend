@@ -50,6 +50,39 @@ userRouter.get("/:uid/uid", async (req, res) => {
   }
 });
 
+userRouter.get("/:uid/followers", async (req, res) => {
+  try {
+    const uid: string = req.params.uid;
+    const client = await getClient();
+    const result = await client
+      .db()
+      .collection<UserProfile>("users")
+      .find({ followingUids: uid })
+      .toArray();
+    res.status(200).json(result);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+userRouter.get("/suggestions/:excludedUids", async (req, res) => {
+  try {
+    const client = await getClient();
+    const excludedUids: string[] = req.params.excludedUids.split(",");
+    const results = await client
+      .db()
+      .collection<UserProfile>("users")
+      .find({
+        uid: { $nin: excludedUids },
+      })
+      .limit(3)
+      .toArray();
+    res.status(200).json(results);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
 userRouter.get("/:username/username", async (req, res) => {
   try {
     const username: string = req.params.username;
@@ -146,21 +179,6 @@ userRouter.put("/:uid/:otherUid/add-following", async (req, res) => {
   }
 });
 
-userRouter.put("/:uid/:otherUid/add-follower", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    const newFollower: string | undefined = req.params.otherUid;
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne({ uid }, { $push: { followersUids: newFollower } });
-    res.status(200).json(newFollower);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
 userRouter.put("/:userUid/:otherUid/remove-following", async (req, res) => {
   try {
     const client = await getClient();
@@ -176,45 +194,14 @@ userRouter.put("/:userUid/:otherUid/remove-following", async (req, res) => {
   }
 });
 
-userRouter.put("/:userUid/:otherUid/remove-follower", async (req, res) => {
+userRouter.put("/:uid/remove-all-user-followings", async (req, res) => {
   try {
     const client = await getClient();
-    const userUid: string | undefined = req.params.userUid;
-    const otherUid: string | undefined = req.params.otherUid;
+    const uid: string = req.params.uid;
     await client
       .db()
       .collection<UserProfile>("users")
-      .updateOne({ uid: userUid }, { $pull: { followersUids: otherUid } });
-    res.status(200).json("Success");
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-userRouter.put("/:uid/add-trip/:tripId", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    const newTripId: string = req.params.tripId;
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne({ uid }, { $push: { tripIds: newTripId } });
-    res.status(200).json(newTripId);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-userRouter.put("/:uid/:tripId/delete-trip", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    const tripId: string | undefined = req.params.tripId;
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne({ uid }, { $pull: { tripIds: tripId } });
+      .updateMany({ followingUids: uid }, { $pull: { followingUids: uid } });
     res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
@@ -308,66 +295,6 @@ userRouter.put(
     }
   }
 );
-
-userRouter.put("/:uid/like-trip/:tripId", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    const tripId: string = req.params.tripId;
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne({ uid }, { $push: { likedTripIds: tripId } });
-    res.status(200).json(tripId);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-userRouter.put("/:uid/unlike-trip/:tripId", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    const tripId: string | undefined = req.params.tripId;
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne({ uid }, { $pull: { likedTripIds: tripId } });
-    res.status(200).json("Success");
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-userRouter.put("/:uid/comment-trip/:tripId", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    const tripId: string = req.params.tripId;
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne({ uid }, { $push: { commentedTripIds: tripId } });
-    res.status(200).json(tripId);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-userRouter.put("/:uid/uncomment-trip/:tripId", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    const tripId: string | undefined = req.params.tripId;
-    await client
-      .db()
-      .collection<UserProfile>("users")
-      .updateOne({ uid }, { $pull: { commentedTripIds: tripId } });
-    res.status(200).json("Success");
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
 
 userRouter.put("/:uid/visit-city/:cityId", async (req, res) => {
   try {
