@@ -18,41 +18,66 @@ tripRouter.get("/:id", async (req, res) => {
       .db()
       .collection<Trip>("trips")
       .findOne({ _id: new ObjectId(tripId) });
-    res.json(results);
+    res.status(200).json(results);
   } catch (err) {
     errorResponse(err, res);
   }
 });
 
-tripRouter.get("/trips-by-tripIds/:tripIds", async (req, res) => {
-  try {
-    const newArray: string[] = req.params.tripIds.split(",");
-    const tripIds: ObjectId[] = [];
-    newArray.forEach((item) => tripIds.push(new ObjectId(item)));
-    const client = await getClient();
-    const cursor = client
-      .db()
-      .collection<Trip>("trips")
-      .find({ _id: { $in: tripIds } });
-    const results = await cursor.toArray();
-    res.json(results);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-tripRouter.get("/:uid/latest", async (req, res) => {
+tripRouter.get("/followings-trips/:includedUids", async (req, res) => {
   try {
     const client = await getClient();
-    const creatorUid: string = req.params.uid;
+    const includedUids: string[] = req.params.includedUids.split(",");
     const results = await client
       .db()
       .collection<Trip>("trips")
-      .find({ creatorUid })
-      .limit(1)
-      .sort({ $natural: -1 })
+      .find({
+        participants: { $elemMatch: { uid: { $in: includedUids } } },
+        completed: true,
+      })
+      .sort({ endDate: -1 })
       .toArray();
-    res.json(results);
+    res.status(200).json(results);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+tripRouter.get("/:uid/:date/upcoming-trips", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string = req.params.uid;
+    const date: string = req.params.date;
+    const results = await client
+      .db()
+      .collection<Trip>("trips")
+      .find({
+        participants: { $elemMatch: { uid } },
+        endDate: { $gt: date },
+      })
+      .sort({ endDate: 1 })
+      .toArray();
+    res.status(200).json(results);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+tripRouter.get("/:uid/:date/past-trips", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string = req.params.uid;
+    const date: string = req.params.date;
+    const results = await client
+      .db()
+      .collection<Trip>("trips")
+      .find({
+        participants: { $elemMatch: { uid } },
+        endDate: { $lt: date },
+      })
+      .sort({ endDate: -1 })
+      .toArray();
+    res.status(200).json(results);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -161,7 +186,7 @@ tripRouter.put("/:tripId/:uid/remove-participant", async (req, res) => {
       .collection<Trip>("trips")
       .updateOne(
         { _id: new ObjectId(tripId) },
-        { $pull: { participantsUids: uid } }
+        { $pull: { participants: { uid } } }
       );
     res.status(200).json("Success");
   } catch (err) {
@@ -246,6 +271,20 @@ tripRouter.put("/:tripId/unlike-trip/:uid", async (req, res) => {
   }
 });
 
+tripRouter.put("/remove-all-user-likes/:uid", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string = req.params.uid;
+    await client
+      .db()
+      .collection<Trip>("trips")
+      .updateMany({ likesUids: uid }, { $pull: { likesUids: uid } });
+    res.status(200).json("Success");
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
 tripRouter.put("/:tripId/comment-trip", async (req, res) => {
   try {
     const client = await getClient();
@@ -278,6 +317,22 @@ tripRouter.put("/:tripId/remove-comment-trip", async (req, res) => {
         { $pull: { comments: { uid, comment, date } } }
       );
     res.status(200).json("Success");
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+tripRouter.put("/remove-all-user-comments/:uid", async (req, res) => {
+  try {
+    const client = await getClient();
+    const uid: string = req.params.uid;
+    await client
+      .db()
+      .collection<Trip>("trips")
+      .updateMany(
+        { comments: { $elemMatch: { uid } } },
+        { $pull: { comments: { uid } } }
+      );
   } catch (err) {
     errorResponse(err, res);
   }
