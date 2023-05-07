@@ -50,16 +50,70 @@ userRouter.get("/:uid/uid", async (req, res) => {
   }
 });
 
-userRouter.get("/:uid/followers", async (req, res) => {
+userRouter.get("/:uid/:date/full-profile", async (req, res) => {
   try {
-    const uid: string = req.params.uid;
     const client = await getClient();
+    const uid: string = req.params.uid;
+    const date: string = req.params.date;
     const result = await client
       .db()
       .collection<UserProfile>("users")
-      .find({ followingUids: uid })
+      .aggregate([
+        { $match: { uid } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "followingUids",
+            foreignField: "uid",
+            as: "followingUserProfiles",
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "uid",
+            foreignField: "followingUids",
+            as: "followerUserProfiles",
+          },
+        },
+        {
+          $lookup: {
+            from: "trips",
+            let: { uid: "$uid" },
+            pipeline: [
+              {
+                $match: {
+                  endDate: { $gt: date },
+                  $expr: { $in: ["$$uid", "$participants.uid"] },
+                },
+              },
+            ],
+            as: "upcomingTrips",
+          },
+        },
+        {
+          $lookup: {
+            from: "trips",
+            let: { uid: "$uid" },
+            pipeline: [
+              {
+                $match: {
+                  endDate: { $lt: date },
+                  $expr: { $in: ["$$uid", "$participants.uid"] },
+                },
+              },
+            ],
+            as: "pastTrips",
+          },
+        },
+        {
+          $project: {
+            followingUids: 0,
+          },
+        },
+      ])
       .toArray();
-    res.status(200).json(result);
+    res.status(200).json(result[0]);
   } catch (err) {
     errorResponse(err, res);
   }

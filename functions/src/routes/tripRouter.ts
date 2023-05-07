@@ -43,46 +43,6 @@ tripRouter.get("/followings-trips/:includedUids", async (req, res) => {
   }
 });
 
-tripRouter.get("/:uid/:date/upcoming-trips", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string = req.params.uid;
-    const date: string = req.params.date;
-    const results = await client
-      .db()
-      .collection<Trip>("trips")
-      .find({
-        participants: { $elemMatch: { uid } },
-        endDate: { $gt: date },
-      })
-      .sort({ endDate: 1 })
-      .toArray();
-    res.status(200).json(results);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-tripRouter.get("/:uid/:date/past-trips", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string = req.params.uid;
-    const date: string = req.params.date;
-    const results = await client
-      .db()
-      .collection<Trip>("trips")
-      .find({
-        participants: { $elemMatch: { uid } },
-        endDate: { $lt: date },
-      })
-      .sort({ endDate: -1 })
-      .toArray();
-    res.status(200).json(results);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
 tripRouter.post("/", async (req, res) => {
   try {
     const client = await getClient();
