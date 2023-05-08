@@ -10,15 +10,36 @@ const errorResponse = (error: any, res: any) => {
   res.status(500).json({ message: "Internal Server Error" });
 };
 
-tripRouter.get("/:id", async (req, res) => {
+tripRouter.get("/:id/full-trip", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string = req.params.id;
     const results = await client
       .db()
       .collection<Trip>("trips")
-      .findOne({ _id: new ObjectId(tripId) });
-    res.status(200).json(results);
+      .aggregate([
+        { $match: { _id: new ObjectId(tripId) } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "participants.uid",
+            foreignField: "uid",
+            as: "participantProfiles",
+          },
+        },
+        {
+          $lookup: {
+            from: "cities",
+            let: { cityId: { $toObjectId: "$cityId" } },
+            pipeline: [{ $match: { $expr: { $eq: ["$_id", "$$cityId"] } } }],
+            as: "city",
+          },
+        },
+        { $unwind: { path: "$city" } },
+        { $project: { cityId: 0 } },
+      ])
+      .toArray();
+    res.status(200).json(results[0]);
   } catch (err) {
     errorResponse(err, res);
   }
