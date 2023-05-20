@@ -19,14 +19,16 @@ tripRouter.get("/:id/full-trip", async (req, res) => {
       .collection<Trip>("trips")
       .aggregate([
         { $match: { _id: new ObjectId(tripId) } },
+        { $unwind: "$participants" },
         {
           $lookup: {
             from: "users",
             localField: "participants.uid",
             foreignField: "uid",
-            as: "participantProfiles",
+            as: "participants.profile",
           },
         },
+        { $unwind: "$participants.profile" },
         {
           $lookup: {
             from: "cities",
@@ -36,7 +38,24 @@ tripRouter.get("/:id/full-trip", async (req, res) => {
           },
         },
         { $unwind: { path: "$city" } },
-        { $project: { cityId: 0 } },
+        {
+          $group: {
+            _id: "$_id",
+            creatorUid: { $first: "$creatorUid" },
+            city: { $first: "$city" },
+            nickname: { $first: "$nickname" },
+            startDate: { $first: "$startDate" },
+            endDate: { $first: "$endDate" },
+            hotel: { $first: "$hotel" },
+            schedule: { $first: "$schedule" },
+            photos: { $first: "$photos" },
+            participants: { $push: "$participants" },
+            messages: { $first: "$messages" },
+            completed: { $first: "$completed" },
+            likesUids: { $first: "$likesUids" },
+            comments: { $first: "$comments" },
+          },
+        },
       ])
       .toArray();
     res.status(200).json(results[0]);
