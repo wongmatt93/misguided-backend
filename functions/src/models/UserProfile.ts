@@ -1,4 +1,5 @@
 import { ObjectId } from "mongodb";
+import Trip from "./Trip";
 
 export interface Notification {
   uid: string;
@@ -31,7 +32,7 @@ export interface Preferences {
   shopping: boolean;
 }
 
-export default interface UserProfile {
+export interface UserTemplate {
   _id?: ObjectId;
   uid: string;
   username: string | null;
@@ -39,9 +40,36 @@ export default interface UserProfile {
   email: string | null;
   phoneNumber: string | null;
   photoURL: string | null;
-  hometownUid: string | null;
+  hometownId: string | null;
   preferences: Preferences | null;
   followingUids: string[];
+  favoriteCityIds: string[];
+  hiddenCityIds: string[];
+  notifications: Notification[];
+  visitedCityIds: string[];
+}
+
+export interface UserSummary {
+  uid: string;
+  username: string;
+  displayName: string;
+  photoURL: string;
+}
+
+export interface UserProfile {
+  _id?: string;
+  uid: string;
+  username: string | null;
+  displayName: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  photoURL: string | null;
+  hometownId: string | null;
+  preferences: Preferences | null;
+  followings: UserSummary[];
+  followers: UserSummary[];
+  upcomingTrips: Trip[];
+  pastTrips: Trip[];
   favoriteCityIds: string[];
   hiddenCityIds: string[];
   notifications: Notification[];

@@ -10,10 +10,30 @@ const errorResponse = (error: any, res: any) => {
   res.status(500).json({ message: "Internal Server Error" });
 };
 
+// gets all cities
 cityRouter.get("/", async (req, res) => {
   try {
     const client = await getClient();
-    const cursor = client.db().collection<City>("cities").find();
+    const cursor = client
+      .db()
+      .collection<City>("cities")
+      .aggregate([
+        {
+          $lookup: {
+            from: "users",
+            let: { visitorsUids: "$visitorsUids" },
+            pipeline: [
+              { $match: { $expr: { $in: ["$uid", "$$visitorsUids"] } } },
+              {
+                $project: { uid: 1, username: 1, displayName: 1, photoURL: 1 },
+              },
+            ],
+            as: "visitors",
+          },
+        },
+        { $project: { visitorsUids: 0 } },
+        { $sort: { cityName: 1 } },
+      ]);
     const results = await cursor.toArray();
     res.status(200).json(results);
   } catch (err) {
@@ -84,7 +104,7 @@ cityRouter.put("/:cityId/:uid/:rating/update-rating", async (req, res) => {
   }
 });
 
-cityRouter.put("/:cityId/remove-rating/:uid", async (req, res) => {
+cityRouter.put("/remove-rating/:cityId/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const cityId: string | undefined = req.params.cityId;
@@ -120,7 +140,7 @@ cityRouter.put("/:cityId/add-visitor/:uid", async (req, res) => {
   }
 });
 
-cityRouter.put("/:cityId/remove-visitor/:uid", async (req, res) => {
+cityRouter.put("/remove-visitor/:cityId/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const cityId: string | undefined = req.params.cityId;

@@ -19,16 +19,17 @@ tripRouter.get("/:id/full-trip", async (req, res) => {
       .collection<Trip>("trips")
       .aggregate([
         { $match: { _id: new ObjectId(tripId) } },
+
         { $unwind: "$participants" },
         {
           $lookup: {
             from: "users",
             localField: "participants.uid",
             foreignField: "uid",
-            as: "participants.profile",
+            as: "participants.user",
           },
         },
-        { $unwind: "$participants.profile" },
+        { $unwind: "$participants.user" },
         {
           $lookup: {
             from: "cities",
@@ -39,9 +40,28 @@ tripRouter.get("/:id/full-trip", async (req, res) => {
         },
         { $unwind: { path: "$city" } },
         {
+          $lookup: {
+            from: "users",
+            let: { uid: "$creatorUid" },
+            pipeline: [
+              { $match: { $expr: { $eq: ["$uid", "$$uid"] } } },
+              {
+                $project: {
+                  username: 1,
+                  displayName: 1,
+                  photoURL: 1,
+                  uid: 1,
+                },
+              },
+            ],
+            as: "creator",
+          },
+        },
+        { $unwind: { path: "$creator" } },
+        {
           $group: {
             _id: "$_id",
-            creatorUid: { $first: "$creatorUid" },
+            creator: { $first: "$creator" },
             city: { $first: "$city" },
             nickname: { $first: "$nickname" },
             startDate: { $first: "$startDate" },
@@ -71,11 +91,144 @@ tripRouter.get("/followings-trips/:includedUids", async (req, res) => {
     const results = await client
       .db()
       .collection<Trip>("trips")
-      .find({
-        participants: { $elemMatch: { uid: { $in: includedUids } } },
-        completed: true,
-      })
-      .sort({ endDate: -1 })
+      .aggregate([
+        {
+          $match: {
+            participants: {
+              $elemMatch: { uid: { $in: includedUids } },
+            },
+            completed: true,
+          },
+        },
+        { $unwind: "$participants" },
+        {
+          $lookup: {
+            from: "users",
+            localField: "participants.uid",
+            foreignField: "uid",
+            as: "participants.user",
+          },
+        },
+        { $unwind: "$participants.user" },
+        {
+          $lookup: {
+            from: "cities",
+            let: { cityId: { $toObjectId: "$cityId" } },
+            pipeline: [
+              { $match: { $expr: { $eq: ["$_id", "$$cityId"] } } },
+              { $project: { cityName: 1, photoURL: 1 } },
+            ],
+            as: "city",
+          },
+        },
+        { $unwind: { path: "$city" } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "comments.uid",
+            foreignField: "uid",
+            as: "user",
+          },
+        },
+        {
+          $set: {
+            comments: {
+              $map: {
+                input: "$comments",
+                in: {
+                  $mergeObjects: [
+                    "$$this",
+                    {
+                      user: {
+                        $arrayElemAt: [
+                          "$user",
+                          { $indexOfArray: ["$user.uid", "$$this.uid"] },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            let: { uid: "$creatorUid" },
+            pipeline: [
+              { $match: { $expr: { $eq: ["$uid", "$$uid"] } } },
+              {
+                $project: {
+                  username: 1,
+                  displayName: 1,
+                  photoURL: 1,
+                  uid: 1,
+                },
+              },
+            ],
+            as: "creator",
+          },
+        },
+        { $unwind: { path: "$creator" } },
+        {
+          $group: {
+            _id: "$_id",
+            creator: { $first: "$creator" },
+            city: { $first: "$city" },
+            nickname: { $first: "$nickname" },
+            startDate: { $first: "$startDate" },
+            endDate: { $first: "$endDate" },
+            hotel: { $first: "$hotel" },
+            schedule: { $first: "$schedule" },
+            photos: { $first: "$photos" },
+            participants: { $push: "$participants" },
+            messages: { $first: "$messages" },
+            completed: { $first: "$completed" },
+            likesUids: { $first: "$likesUids" },
+            comments: { $first: "$comments" },
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            let: { likesUids: "$likesUids" },
+            pipeline: [
+              { $match: { $expr: { $in: ["$uid", "$$likesUids"] } } },
+              {
+                $project: { uid: 1, username: 1, displayName: 1, photoURL: 1 },
+              },
+            ],
+            as: "likes",
+          },
+        },
+        { $sort: { endDate: -1 } },
+        {
+          $project: {
+            "participants.user.notifications": 0,
+            "participants.user.preferences": 0,
+            "participants.user.favoriteCityIds": 0,
+            "participants.user.followingUids": 0,
+            "participants.user.hiddenCityIds": 0,
+            "participants.user.hometownId": 0,
+            "participants.user.phoneNumber": 0,
+            "participants.user.visitedCityIds": 0,
+            "participants.user.email": 0,
+            "participants.uid": 0,
+            "comments.user.notifications": 0,
+            "comments.user.preferences": 0,
+            "comments.user.favoriteCityIds": 0,
+            "comments.user.followingUids": 0,
+            "comments.user.hiddenCityIds": 0,
+            "comments.user.hometownId": 0,
+            "comments.user.phoneNumber": 0,
+            "comments.user.visitedCityIds": 0,
+            "comments.user.email": 0,
+            "comments.uid": 0,
+            likesUids: 0,
+          },
+        },
+      ])
       .toArray();
     res.status(200).json(results);
   } catch (err) {
@@ -123,15 +276,18 @@ tripRouter.put("/:id/update-nickname/:nickname", async (req, res) => {
   }
 });
 
-tripRouter.put("/:id/update-creator/:newUid", async (req, res) => {
+tripRouter.put("/:tripId/update-creator/:newUid", async (req, res) => {
   try {
     const client = await getClient();
-    const id: string | undefined = req.params.id;
+    const tripId: string | undefined = req.params.tripId;
     const newUid: string | undefined = req.params.newUid;
     await client
       .db()
       .collection<Trip>("trips")
-      .updateOne({ _id: new ObjectId(id) }, { $set: { creatorUid: newUid } });
+      .updateOne(
+        { _id: new ObjectId(tripId) },
+        { $set: { creatorUid: newUid } }
+      );
     res.status(200).json(newUid);
   } catch (err) {
     errorResponse(err, res);
@@ -194,16 +350,16 @@ tripRouter.put("/:tripId/:uid/remove-participant", async (req, res) => {
   }
 });
 
-tripRouter.put("/:id/new-message", async (req, res) => {
+tripRouter.put("/new-message/:tripId", async (req, res) => {
   try {
     const client = await getClient();
-    const id: string | undefined = req.params.id;
+    const tripId: string | undefined = req.params.tripId;
     const newMessage: Message = req.body;
     await client
       .db()
       .collection<Trip>("trips")
       .updateOne(
-        { _id: new ObjectId(id) },
+        { _id: new ObjectId(tripId) },
         { $push: { messages: newMessage } }
       );
     res.status(200).json(newMessage);
