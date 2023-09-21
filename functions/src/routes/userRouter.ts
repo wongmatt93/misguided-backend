@@ -486,24 +486,19 @@ userRouter.get("/:username/:search/search", async (req, res) => {
   }
 });
 
-// This endpoint takes in a UID and returns an array of users that have a notification with that UID
-userRouter.get("/notifications-search/:uid", async (req, res) => {
+// This endpoint takes in a UID and deletes notifications that contain this uid
+userRouter.put("/remove-all-user-notifications/:uid", async (req, res) => {
   try {
     const uid: string = req.params.uid;
     const client = await getClient();
-    const cursor = client
+    await client
       .db()
       .collection<UserTemplate>("users")
-      .find({ notifications: { $elemMatch: { uid } } })
-      .project({
-        uid: 1,
-        username: 1,
-        displayName: 1,
-        photoURL: 1,
-        notifications: 1,
-      });
-    const result = await cursor.toArray();
-    res.status(200).json(result);
+      .updateMany(
+        { notifications: { $elemMatch: { uid } } },
+        { $pull: { notifications: { uid } } }
+      );
+    res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
   }
