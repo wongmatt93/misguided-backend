@@ -15,7 +15,7 @@ yelpRouter.get("/restaurants", async (req, res) => {
         location,
         limit: 50,
         categories: "restaurants",
-        term: "nasty, dirty, disgusting, filthy, smells, gross, awful, stinks",
+        price: 1,
       },
       headers: {
         Authorization: `Bearer ${key}`,
@@ -50,7 +50,7 @@ yelpRouter.get("/breakfast", async (req, res) => {
         location,
         limit: 50,
         categories: "breakfast_brunch",
-        term: "nasty, dirty, disgusting, filthy, smells, gross, awful, stinks",
+        price: 1,
       },
       headers: {
         Authorization: `Bearer ${key}`,

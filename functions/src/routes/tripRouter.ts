@@ -10,10 +10,10 @@ const errorResponse = (error: any, res: any) => {
   res.status(500).json({ message: "Internal Server Error" });
 };
 
-tripRouter.get("/:id/full-trip", async (req, res) => {
+tripRouter.get("/full-trip/:tripId", async (req, res) => {
   try {
     const client = await getClient();
-    const tripId: string = req.params.id;
+    const tripId: string = req.params.tripId;
     const results = await client
       .db()
       .collection<Trip>("trips")
@@ -247,36 +247,36 @@ tripRouter.post("/", async (req, res) => {
   }
 });
 
-tripRouter.delete("/:id", async (req, res) => {
+tripRouter.delete("/:tripId", async (req, res) => {
   try {
     const client = await getClient();
-    const id: string = req.params.id;
+    const tripId: string = req.params.tripId;
     await client
       .db()
       .collection<Trip>("trips")
-      .deleteOne({ _id: new ObjectId(id) });
+      .deleteOne({ _id: new ObjectId(tripId) });
     res.sendStatus(204);
   } catch (err) {
     errorResponse(err, res);
   }
 });
 
-tripRouter.put("/:id/update-nickname/:nickname", async (req, res) => {
+tripRouter.put("/update-nickname/:tripId/:nickname", async (req, res) => {
   try {
     const client = await getClient();
-    const id: string | undefined = req.params.id;
+    const tripId: string | undefined = req.params.tripId;
     const nickname: string | undefined = req.params.nickname;
     await client
       .db()
       .collection<Trip>("trips")
-      .updateOne({ _id: new ObjectId(id) }, { $set: { nickname } });
+      .updateOne({ _id: new ObjectId(tripId) }, { $set: { nickname } });
     res.status(200).json(nickname);
   } catch (err) {
     errorResponse(err, res);
   }
 });
 
-tripRouter.put("/:tripId/update-creator/:newUid", async (req, res) => {
+tripRouter.put("/update-creator/:tripId/:newUid", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string | undefined = req.params.tripId;
@@ -294,16 +294,16 @@ tripRouter.put("/:tripId/update-creator/:newUid", async (req, res) => {
   }
 });
 
-tripRouter.put("/:id/new-participant", async (req, res) => {
+tripRouter.put("/new-participant/:tripId", async (req, res) => {
   try {
     const client = await getClient();
-    const id: string | undefined = req.params.id;
+    const tripId: string | undefined = req.params.tripId;
     const newParticipant: Participant = req.body;
     await client
       .db()
       .collection<Trip>("trips")
       .updateOne(
-        { _id: new ObjectId(id) },
+        { _id: new ObjectId(tripId) },
         { $push: { participants: newParticipant } }
       );
     res.status(200);
@@ -313,7 +313,7 @@ tripRouter.put("/:id/new-participant", async (req, res) => {
   }
 });
 
-tripRouter.put("/:tripId/:uid/accept-trip", async (req, res) => {
+tripRouter.put("/accept-trip/:tripId/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string = req.params.tripId;
@@ -332,7 +332,7 @@ tripRouter.put("/:tripId/:uid/accept-trip", async (req, res) => {
   }
 });
 
-tripRouter.put("/:tripId/:uid/remove-participant", async (req, res) => {
+tripRouter.put("/remove-participant/:tripId/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string | undefined = req.params.tripId;
@@ -368,51 +368,51 @@ tripRouter.put("/new-message/:tripId", async (req, res) => {
   }
 });
 
-tripRouter.put("/:id/complete-trip", async (req, res) => {
+tripRouter.put("/complete-trip/:tripId", async (req, res) => {
   try {
     const client = await getClient();
-    const id: string | undefined = req.params.id;
+    const tripId: string | undefined = req.params.tripId;
     await client
       .db()
       .collection<Trip>("trips")
-      .updateOne({ _id: new ObjectId(id) }, { $set: { completed: true } });
+      .updateOne({ _id: new ObjectId(tripId) }, { $set: { completed: true } });
     res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
   }
 });
 
-tripRouter.put("/:id/photos", async (req, res) => {
+tripRouter.put("/photos/:tripId", async (req, res) => {
   try {
     const client = await getClient();
-    const id: string | undefined = req.params.id;
+    const tripId: string | undefined = req.params.tripId;
     const photo: string = req.body.photo;
     await client
       .db()
       .collection<Trip>("trips")
-      .updateOne({ _id: new ObjectId(id) }, { $push: { photos: photo } });
+      .updateOne({ _id: new ObjectId(tripId) }, { $push: { photos: photo } });
     res.status(200).json(photo);
   } catch (err) {
     errorResponse(err, res);
   }
 });
 
-tripRouter.put("/:id/like-trip/:uid", async (req, res) => {
+tripRouter.put("/like-trip/:tripId/:uid", async (req, res) => {
   try {
     const client = await getClient();
-    const id: string | undefined = req.params.id;
+    const tripId: string | undefined = req.params.tripId;
     const like: string = req.params.uid;
     await client
       .db()
       .collection<Trip>("trips")
-      .updateOne({ _id: new ObjectId(id) }, { $push: { likesUids: like } });
+      .updateOne({ _id: new ObjectId(tripId) }, { $push: { likesUids: like } });
     res.status(200).json(like);
   } catch (err) {
     errorResponse(err, res);
   }
 });
 
-tripRouter.put("/:tripId/unlike-trip/:uid", async (req, res) => {
+tripRouter.put("/unlike-trip/:tripId/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string | undefined = req.params.tripId;
@@ -441,7 +441,7 @@ tripRouter.put("/remove-all-user-likes/:uid", async (req, res) => {
   }
 });
 
-tripRouter.put("/:tripId/comment-trip", async (req, res) => {
+tripRouter.put("/comment-trip/:tripId", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string | undefined = req.params.tripId;
@@ -459,7 +459,7 @@ tripRouter.put("/:tripId/comment-trip", async (req, res) => {
   }
 });
 
-tripRouter.put("/:tripId/remove-comment-trip", async (req, res) => {
+tripRouter.put("/remove-comment-trip/:tripId", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string | undefined = req.params.tripId;

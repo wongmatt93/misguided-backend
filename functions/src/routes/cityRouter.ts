@@ -122,7 +122,7 @@ cityRouter.put("/remove-rating/:cityId/:uid", async (req, res) => {
   }
 });
 
-cityRouter.put("/:cityId/add-visitor/:uid", async (req, res) => {
+cityRouter.put("/add-visitor/:cityId/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const cityId: string | undefined = req.params.cityId;

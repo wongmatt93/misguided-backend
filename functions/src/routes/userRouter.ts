@@ -108,7 +108,29 @@ userRouter.get("/user-by-uid/:uid/:date", async (req, res) => {
                         $expr: { $eq: ["$_id", { $toObjectId: "$$cityId" }] },
                       },
                     },
-                    { $project: { cityName: 1, photoURL: 1 } },
+                    {
+                      $lookup: {
+                        from: "users",
+                        let: { visitorsUids: "$visitorsUids" },
+                        pipeline: [
+                          {
+                            $match: {
+                              $expr: { $in: ["$uid", "$$visitorsUids"] },
+                            },
+                          },
+                          {
+                            $project: {
+                              uid: 1,
+                              username: 1,
+                              displayName: 1,
+                              photoURL: 1,
+                            },
+                          },
+                        ],
+                        as: "visitors",
+                      },
+                    },
+                    { $project: { cityName: 1, photoURL: 1, visitors: 1 } },
                   ],
                   as: "city",
                 },
@@ -202,7 +224,29 @@ userRouter.get("/user-by-uid/:uid/:date", async (req, res) => {
                         $expr: { $eq: ["$_id", { $toObjectId: "$$cityId" }] },
                       },
                     },
-                    { $project: { cityName: 1, photoURL: 1 } },
+                    {
+                      $lookup: {
+                        from: "users",
+                        let: { visitorsUids: "$visitorsUids" },
+                        pipeline: [
+                          {
+                            $match: {
+                              $expr: { $in: ["$uid", "$$visitorsUids"] },
+                            },
+                          },
+                          {
+                            $project: {
+                              uid: 1,
+                              username: 1,
+                              displayName: 1,
+                              photoURL: 1,
+                            },
+                          },
+                        ],
+                        as: "visitors",
+                      },
+                    },
+                    { $project: { cityName: 1, photoURL: 1, visitors: 1 } },
                   ],
                   as: "city",
                 },
