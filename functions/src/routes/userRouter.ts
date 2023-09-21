@@ -194,7 +194,6 @@ userRouter.get("/user-by-uid/:uid/:date", async (req, res) => {
                   "participants.user.hiddenCityIds": 0,
                   "participants.user.hometownId": 0,
                   "participants.user.phoneNumber": 0,
-                  "participants.user.visitedCityIds": 0,
                   "participants.user.email": 0,
                   "participants.uid": 0,
                 },
@@ -310,13 +309,56 @@ userRouter.get("/user-by-uid/:uid/:date", async (req, res) => {
                   "participants.user.hiddenCityIds": 0,
                   "participants.user.hometownId": 0,
                   "participants.user.phoneNumber": 0,
-                  "participants.user.visitedCityIds": 0,
                   "participants.user.email": 0,
                   "participants.uid": 0,
                 },
               },
             ],
             as: "pastTrips",
+          },
+        },
+        {
+          $lookup: {
+            from: "cities",
+            let: { uid: "$uid" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $in: ["$$uid", "$visitorsUids"] },
+                },
+              },
+              {
+                $lookup: {
+                  from: "users",
+                  let: { visitorsUids: "$visitorsUids" },
+                  pipeline: [
+                    { $match: { $expr: { $in: ["$uid", "$$visitorsUids"] } } },
+                    {
+                      $project: {
+                        uid: 1,
+                        username: 1,
+                        displayName: 1,
+                        photoURL: 1,
+                      },
+                    },
+                  ],
+                  as: "visitors",
+                },
+              },
+              {
+                $project: {
+                  cityDescription: 0,
+                  cityCode: 0,
+                  country: 0,
+                  knownFor: 0,
+                  latitude: 0,
+                  longitude: 0,
+                  ratings: 0,
+                  visitorsUids: 0,
+                },
+              },
+            ],
+            as: "visitedCities",
           },
         },
         {
@@ -359,7 +401,6 @@ userRouter.get("/user-by-uid/:uid/:date", async (req, res) => {
             "notifications.user.hiddenCityIds": 0,
             "notifications.user.hometownId": 0,
             "notifications.user.phoneNumber": 0,
-            "notifications.user.visitedCityIds": 0,
             "notifications.user.email": 0,
             "notifications.uid": 0,
             user: 0,
@@ -438,6 +479,29 @@ userRouter.get("/:username/:search/search", async (req, res) => {
         },
       })
       .project({ uid: 1, username: 1, displayName: 1, photoURL: 1 });
+    const result = await cursor.toArray();
+    res.status(200).json(result);
+  } catch (err) {
+    errorResponse(err, res);
+  }
+});
+
+// This endpoint takes in a UID and returns an array of users that have a notification with that UID
+userRouter.get("/notifications-search/:uid", async (req, res) => {
+  try {
+    const uid: string = req.params.uid;
+    const client = await getClient();
+    const cursor = client
+      .db()
+      .collection<UserTemplate>("users")
+      .find({ notifications: { $elemMatch: { uid } } })
+      .project({
+        uid: 1,
+        username: 1,
+        displayName: 1,
+        photoURL: 1,
+        notifications: 1,
+      });
     const result = await cursor.toArray();
     res.status(200).json(result);
   } catch (err) {
@@ -618,21 +682,6 @@ userRouter.put(
     }
   }
 );
-
-userRouter.put("/visit-city/:uid/:cityId", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string | undefined = req.params.uid;
-    const cityId: string = req.params.cityId;
-    await client
-      .db()
-      .collection<UserTemplate>("users")
-      .updateOne({ uid }, { $push: { visitedCityIds: cityId } });
-    res.status(200).json(cityId);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
 
 userRouter.put("/update-photo/:uid/", async (req, res) => {
   try {
