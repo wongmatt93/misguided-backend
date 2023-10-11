@@ -184,9 +184,58 @@ userRouter.get("/user-by-uid/:uid/:date", async (req, res) => {
                 },
               },
               {
+                $lookup: {
+                  from: "users",
+                  localField: "comments.uid",
+                  foreignField: "uid",
+                  as: "user",
+                },
+              },
+              {
+                $set: {
+                  comments: {
+                    $map: {
+                      input: "$comments",
+                      in: {
+                        $mergeObjects: [
+                          "$$this",
+                          {
+                            user: {
+                              $arrayElemAt: [
+                                "$user",
+                                { $indexOfArray: ["$user.uid", "$$this.uid"] },
+                              ],
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+              {
+                $lookup: {
+                  from: "users",
+                  let: { likesUids: "$likesUids" },
+                  pipeline: [
+                    { $match: { $expr: { $in: ["$uid", "$$likesUids"] } } },
+                    {
+                      $project: {
+                        uid: 1,
+                        username: 1,
+                        displayName: 1,
+                        photoURL: 1,
+                      },
+                    },
+                  ],
+                  as: "likes",
+                },
+              },
+              {
                 $project: {
                   cityId: 0,
                   creatorUid: 0,
+                  likesUids: 0,
                   "participants.user.notifications": 0,
                   "participants.user.preferences": 0,
                   "participants.user.favoriteCityIds": 0,
@@ -196,6 +245,16 @@ userRouter.get("/user-by-uid/:uid/:date", async (req, res) => {
                   "participants.user.phoneNumber": 0,
                   "participants.user.email": 0,
                   "participants.uid": 0,
+                  "comments.user.notifications": 0,
+                  "comments.user.preferences": 0,
+                  "comments.user.favoriteCityIds": 0,
+                  "comments.user.followingUids": 0,
+                  "comments.user.hiddenCityIds": 0,
+                  "comments.user.hometownId": 0,
+                  "comments.user.phoneNumber": 0,
+                  "comments.user.visitedCityIds": 0,
+                  "comments.user.email": 0,
+                  "comments.uid": 0,
                 },
               },
             ],
@@ -299,9 +358,58 @@ userRouter.get("/user-by-uid/:uid/:date", async (req, res) => {
                 },
               },
               {
+                $lookup: {
+                  from: "users",
+                  localField: "comments.uid",
+                  foreignField: "uid",
+                  as: "user",
+                },
+              },
+              {
+                $set: {
+                  comments: {
+                    $map: {
+                      input: "$comments",
+                      in: {
+                        $mergeObjects: [
+                          "$$this",
+                          {
+                            user: {
+                              $arrayElemAt: [
+                                "$user",
+                                { $indexOfArray: ["$user.uid", "$$this.uid"] },
+                              ],
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+              {
+                $lookup: {
+                  from: "users",
+                  let: { likesUids: "$likesUids" },
+                  pipeline: [
+                    { $match: { $expr: { $in: ["$uid", "$$likesUids"] } } },
+                    {
+                      $project: {
+                        uid: 1,
+                        username: 1,
+                        displayName: 1,
+                        photoURL: 1,
+                      },
+                    },
+                  ],
+                  as: "likes",
+                },
+              },
+              {
                 $project: {
                   cityId: 0,
                   creatorUid: 0,
+                  likesUids: 0,
                   "participants.user.notifications": 0,
                   "participants.user.preferences": 0,
                   "participants.user.favoriteCityIds": 0,
@@ -311,6 +419,16 @@ userRouter.get("/user-by-uid/:uid/:date", async (req, res) => {
                   "participants.user.phoneNumber": 0,
                   "participants.user.email": 0,
                   "participants.uid": 0,
+                  "comments.user.notifications": 0,
+                  "comments.user.preferences": 0,
+                  "comments.user.favoriteCityIds": 0,
+                  "comments.user.followingUids": 0,
+                  "comments.user.hiddenCityIds": 0,
+                  "comments.user.hometownId": 0,
+                  "comments.user.phoneNumber": 0,
+                  "comments.user.visitedCityIds": 0,
+                  "comments.user.email": 0,
+                  "comments.uid": 0,
                 },
               },
             ],
