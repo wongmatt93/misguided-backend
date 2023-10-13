@@ -66,7 +66,7 @@ cityRouter.post("/", async (req, res) => {
   }
 });
 
-cityRouter.put("/:cityId/new-rating", async (req, res) => {
+cityRouter.put("/add-rating/:cityId", async (req, res) => {
   try {
     const client = await getClient();
     const cityId: string | undefined = req.params.cityId;
@@ -84,7 +84,7 @@ cityRouter.put("/:cityId/new-rating", async (req, res) => {
   }
 });
 
-cityRouter.put("/:cityId/:uid/:rating/update-rating", async (req, res) => {
+cityRouter.put("/update-rating/:cityId/:uid/:rating", async (req, res) => {
   try {
     const client = await getClient();
     const cityId: string | undefined = req.params.cityId;
