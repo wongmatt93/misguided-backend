@@ -34,11 +34,66 @@ tripRouter.get("/full-trip/:tripId", async (req, res) => {
           $lookup: {
             from: "cities",
             let: { cityId: { $toObjectId: "$cityId" } },
-            pipeline: [{ $match: { $expr: { $eq: ["$_id", "$$cityId"] } } }],
+            pipeline: [
+              { $match: { $expr: { $eq: ["$_id", "$$cityId"] } } },
+              {
+                $lookup: {
+                  from: "users",
+                  let: { visitorsUids: "$visitorsUids" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: { $in: ["$uid", "$$visitorsUids"] },
+                      },
+                    },
+                    {
+                      $project: {
+                        uid: 1,
+                        username: 1,
+                        displayName: 1,
+                        photoURL: 1,
+                      },
+                    },
+                  ],
+                  as: "visitors",
+                },
+              },
+              { $project: { cityName: 1, photoURL: 1, visitors: 1 } },
+            ],
             as: "city",
           },
         },
         { $unwind: { path: "$city" } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "comments.uid",
+            foreignField: "uid",
+            as: "user",
+          },
+        },
+        {
+          $set: {
+            comments: {
+              $map: {
+                input: "$comments",
+                in: {
+                  $mergeObjects: [
+                    "$$this",
+                    {
+                      user: {
+                        $arrayElemAt: [
+                          "$user",
+                          { $indexOfArray: ["$user.uid", "$$this.uid"] },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
         {
           $lookup: {
             from: "users",
@@ -74,6 +129,44 @@ tripRouter.get("/full-trip/:tripId", async (req, res) => {
             completed: { $first: "$completed" },
             likesUids: { $first: "$likesUids" },
             comments: { $first: "$comments" },
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            let: { likesUids: "$likesUids" },
+            pipeline: [
+              { $match: { $expr: { $in: ["$uid", "$$likesUids"] } } },
+              {
+                $project: { uid: 1, username: 1, displayName: 1, photoURL: 1 },
+              },
+            ],
+            as: "likes",
+          },
+        },
+        {
+          $project: {
+            "participants.user.notifications": 0,
+            "participants.user.preferences": 0,
+            "participants.user.favoriteCityIds": 0,
+            "participants.user.followingUids": 0,
+            "participants.user.hiddenCityIds": 0,
+            "participants.user.hometownId": 0,
+            "participants.user.phoneNumber": 0,
+            "participants.user.visitedCityIds": 0,
+            "participants.user.email": 0,
+            "participants.uid": 0,
+            "comments.user.notifications": 0,
+            "comments.user.preferences": 0,
+            "comments.user.favoriteCityIds": 0,
+            "comments.user.followingUids": 0,
+            "comments.user.hiddenCityIds": 0,
+            "comments.user.hometownId": 0,
+            "comments.user.phoneNumber": 0,
+            "comments.user.visitedCityIds": 0,
+            "comments.user.email": 0,
+            "comments.uid": 0,
+            likesUids: 0,
           },
         },
       ])
@@ -116,7 +209,29 @@ tripRouter.get("/followings-trips/:includedUids", async (req, res) => {
             let: { cityId: { $toObjectId: "$cityId" } },
             pipeline: [
               { $match: { $expr: { $eq: ["$_id", "$$cityId"] } } },
-              { $project: { cityName: 1, photoURL: 1 } },
+              {
+                $lookup: {
+                  from: "users",
+                  let: { visitorsUids: "$visitorsUids" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: { $in: ["$uid", "$$visitorsUids"] },
+                      },
+                    },
+                    {
+                      $project: {
+                        uid: 1,
+                        username: 1,
+                        displayName: 1,
+                        photoURL: 1,
+                      },
+                    },
+                  ],
+                  as: "visitors",
+                },
+              },
+              { $project: { cityName: 1, photoURL: 1, visitors: 1 } },
             ],
             as: "city",
           },
