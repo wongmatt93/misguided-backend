@@ -64,7 +64,7 @@ interface SingleDaySchedule {
   event2Url: string;
 }
 
-export default interface NewTrip {
+export default interface TripTemplate {
   _id?: ObjectId;
   cityId: string;
   creatorUid: string;
