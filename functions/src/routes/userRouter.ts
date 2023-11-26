@@ -1,6 +1,8 @@
 import express from "express";
 import { FindOptions, ObjectId } from "mongodb";
 import { getClient } from "../db";
+import City from "../models/City";
+import NewTrip, { Trip, Participant } from "../models/Trip";
 import { Notification, Preferences, UserTemplate } from "../models/UserProfile";
 
 const userRouter = express.Router();
@@ -9,17 +11,6 @@ const errorResponse = (error: any, res: any) => {
   console.error("FAIL", error);
   res.status(500).json({ message: "Internal Server Error" });
 };
-
-// userRouter.get("/", async (req, res) => {
-//   try {
-//     const client = await getClient();
-//     const cursor = client.db().collection<UserTemplate>("users").find();
-//     const results = await cursor.toArray();
-//     res.status(200).json(results);
-//   } catch (err) {
-//     errorResponse(err, res);
-//   }
-// });
 
 // userRouter.get("/users-by-uid/:uids", async (req, res) => {
 //   try {
@@ -31,20 +22,6 @@ const errorResponse = (error: any, res: any) => {
 //       .find({ uid: { $in: uids } });
 //     const results = await cursor.toArray();
 //     res.status(200).json(results);
-//   } catch (err) {
-//     errorResponse(err, res);
-//   }
-// });
-
-// userRouter.get("/:uid/uid", async (req, res) => {
-//   try {
-//     const uid: string = req.params.uid;
-//     const client = await getClient();
-//     const result = await client
-//       .db()
-//       .collection<UserTemplate>("users")
-//       .findOne({ uid });
-//     res.status(200).json(result);
 //   } catch (err) {
 //     errorResponse(err, res);
 //   }
@@ -604,24 +581,6 @@ userRouter.get("/:username/:search/search", async (req, res) => {
   }
 });
 
-// This endpoint takes in a UID and deletes notifications that contain this uid
-userRouter.put("/remove-all-user-notifications/:uid", async (req, res) => {
-  try {
-    const uid: string = req.params.uid;
-    const client = await getClient();
-    await client
-      .db()
-      .collection<UserTemplate>("users")
-      .updateMany(
-        { notifications: { $elemMatch: { uid } } },
-        { $pull: { notifications: { uid } } }
-      );
-    res.status(200).json("Success");
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
 // This endpoint takes in a UserTemplate object and adds it to the database
 userRouter.post("/", async (req, res) => {
   try {
@@ -637,9 +596,102 @@ userRouter.post("/", async (req, res) => {
 // This endpoint deletes a UserTemplate from the database
 userRouter.delete("/:uid", async (req, res) => {
   try {
-    const client = await getClient();
     const uid: string = req.params.uid;
+    const trips: Trip[] = req.body.trips;
+    const visitedCities: City[] = req.body.visitedCities;
+    const client = await getClient();
+
+    // deletes user from documents
     await client.db().collection<UserTemplate>("users").deleteOne({ uid });
+
+    // deletes uid from other users' followingUids
+    await client
+      .db()
+      .collection<UserTemplate>("users")
+      .updateMany({ followingUids: uid }, { $pull: { followingUids: uid } });
+
+    // deletes uid from all trip likes
+    await client
+      .db()
+      .collection<Trip>("trips")
+      .updateMany({ likesUids: uid }, { $pull: { likesUids: uid } });
+
+    // deletes all comments with user uid
+    await client
+      .db()
+      .collection<Trip>("trips")
+      .updateMany(
+        { comments: { $elemMatch: { uid } } },
+        { $pull: { comments: { uid } } }
+      );
+
+    // deletes all notifications with user uid
+    await client
+      .db()
+      .collection<UserTemplate>("users")
+      .updateMany(
+        { notifications: { $elemMatch: { uid } } },
+        { $pull: { notifications: { uid } } }
+      );
+
+    // delete user from trips
+    trips.forEach((trip) => {
+      const acceptedParticipants: Participant[] = trip.participants.filter(
+        (participant) => participant.accepted
+      );
+
+      if (acceptedParticipants.length === 1) {
+        // deletes trip if user is the only participant
+        client
+          .db()
+          .collection<NewTrip>("trips")
+          .deleteOne({ _id: new ObjectId(trip._id) });
+      } else {
+        // removes participant from the trip
+        client
+          .db()
+          .collection<NewTrip>("trips")
+          .updateOne(
+            { _id: new ObjectId(trip._id) },
+            { $pull: { participants: { uid } } }
+          );
+
+        // reassigns creatorUid if user was creator but there are other participants
+        if (trip.creator.uid === uid) {
+          const newCreator: Participant | undefined = acceptedParticipants.find(
+            (participant) => participant.user.uid != uid
+          );
+
+          if (newCreator) {
+            client
+              .db()
+              .collection<NewTrip>("trips")
+              .updateOne(
+                { _id: new ObjectId(trip._id) },
+                { $set: { creatorUid: newCreator.user.uid } }
+              );
+          }
+        }
+      }
+    });
+
+    // delete user from visited cities
+    visitedCities.forEach((city) => {
+      client
+        .db()
+        .collection<City>("cities")
+        .updateOne(
+          { _id: new ObjectId(city._id) },
+          { $pull: { visitorsUids: uid } }
+        );
+      client
+        .db()
+        .collection<City>("cities")
+        .updateOne(
+          { _id: new ObjectId(city._id) },
+          { $pull: { ratings: { uid } } }
+        );
+    });
     res.sendStatus(204);
   } catch (err) {
     errorResponse(err, res);
@@ -688,20 +740,6 @@ userRouter.put("/remove-following/:userUid/:otherUid", async (req, res) => {
       .db()
       .collection<UserTemplate>("users")
       .updateOne({ uid: userUid }, { $pull: { followingUids: otherUid } });
-    res.status(200).json("Success");
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-userRouter.put("/remove-all-followings/:uid", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string = req.params.uid;
-    await client
-      .db()
-      .collection<UserTemplate>("users")
-      .updateMany({ followingUids: uid }, { $pull: { followingUids: uid } });
     res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);

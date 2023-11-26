@@ -104,24 +104,6 @@ cityRouter.put("/update-rating/:cityId/:uid/:rating", async (req, res) => {
   }
 });
 
-cityRouter.put("/remove-rating/:cityId/:uid", async (req, res) => {
-  try {
-    const client = await getClient();
-    const cityId: string | undefined = req.params.cityId;
-    const uid: string = req.params.uid;
-    await client
-      .db()
-      .collection<City>("cities")
-      .updateOne(
-        { _id: new ObjectId(cityId) },
-        { $pull: { ratings: { uid } } }
-      );
-    res.status(200).json("Success");
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
 cityRouter.put("/add-visitor/:cityId/:uid", async (req, res) => {
   try {
     const client = await getClient();
@@ -135,24 +117,6 @@ cityRouter.put("/add-visitor/:cityId/:uid", async (req, res) => {
         { $push: { visitorsUids: newVisitor } }
       );
     res.status(200).json(newVisitor);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-cityRouter.put("/remove-visitor/:cityId/:uid", async (req, res) => {
-  try {
-    const client = await getClient();
-    const cityId: string | undefined = req.params.cityId;
-    const uid: string = req.params.uid;
-    await client
-      .db()
-      .collection<City>("cities")
-      .updateOne(
-        { _id: new ObjectId(cityId) },
-        { $pull: { visitorsUids: uid } }
-      );
-    res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
   }
