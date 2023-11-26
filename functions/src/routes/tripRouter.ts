@@ -1,7 +1,12 @@
 import express from "express";
 import { ObjectId } from "mongodb";
 import { getClient } from "../db";
-import Trip, { Comment, Message, Participant } from "../models/Trip";
+import NewTrip, {
+  NewParticipant,
+  Comment,
+  Message,
+  Trip,
+} from "../models/Trip";
 
 const tripRouter = express.Router();
 
@@ -368,7 +373,7 @@ tripRouter.delete("/:tripId", async (req, res) => {
     const tripId: string = req.params.tripId;
     await client
       .db()
-      .collection<Trip>("trips")
+      .collection<NewTrip>("trips")
       .deleteOne({ _id: new ObjectId(tripId) });
     res.sendStatus(204);
   } catch (err) {
@@ -383,27 +388,9 @@ tripRouter.put("/update-nickname/:tripId/:nickname", async (req, res) => {
     const nickname: string | undefined = req.params.nickname;
     await client
       .db()
-      .collection<Trip>("trips")
+      .collection<NewTrip>("trips")
       .updateOne({ _id: new ObjectId(tripId) }, { $set: { nickname } });
     res.status(200).json(nickname);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-tripRouter.put("/update-creator/:tripId/:newUid", async (req, res) => {
-  try {
-    const client = await getClient();
-    const tripId: string | undefined = req.params.tripId;
-    const newUid: string | undefined = req.params.newUid;
-    await client
-      .db()
-      .collection<Trip>("trips")
-      .updateOne(
-        { _id: new ObjectId(tripId) },
-        { $set: { creatorUid: newUid } }
-      );
-    res.status(200).json(newUid);
   } catch (err) {
     errorResponse(err, res);
   }
@@ -413,10 +400,10 @@ tripRouter.put("/new-participant/:tripId", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string | undefined = req.params.tripId;
-    const newParticipant: Participant = req.body;
+    const newParticipant: NewParticipant = req.body;
     await client
       .db()
-      .collection<Trip>("trips")
+      .collection<NewTrip>("trips")
       .updateOne(
         { _id: new ObjectId(tripId) },
         { $push: { participants: newParticipant } }
@@ -435,7 +422,7 @@ tripRouter.put("/accept-trip/:tripId/:uid", async (req, res) => {
     const uid: string = req.params.uid;
     await client
       .db()
-      .collection<Trip>("trips")
+      .collection<NewTrip>("trips")
       .updateOne(
         { _id: new ObjectId(tripId) },
         { $set: { [`participants.$[participant].accepted`]: true } },
@@ -454,7 +441,7 @@ tripRouter.put("/remove-participant/:tripId/:uid", async (req, res) => {
     const uid: string | undefined = req.params.uid;
     await client
       .db()
-      .collection<Trip>("trips")
+      .collection<NewTrip>("trips")
       .updateOne(
         { _id: new ObjectId(tripId) },
         { $pull: { participants: { uid } } }
@@ -472,7 +459,7 @@ tripRouter.put("/new-message/:tripId", async (req, res) => {
     const newMessage: Message = req.body;
     await client
       .db()
-      .collection<Trip>("trips")
+      .collection<NewTrip>("trips")
       .updateOne(
         { _id: new ObjectId(tripId) },
         { $push: { messages: newMessage } }
@@ -489,7 +476,7 @@ tripRouter.put("/complete-trip/:tripId", async (req, res) => {
     const tripId: string | undefined = req.params.tripId;
     await client
       .db()
-      .collection<Trip>("trips")
+      .collection<NewTrip>("trips")
       .updateOne({ _id: new ObjectId(tripId) }, { $set: { completed: true } });
     res.status(200).json("Success");
   } catch (err) {
@@ -504,7 +491,7 @@ tripRouter.put("/photos/:tripId", async (req, res) => {
     const photo: string = req.body.photo;
     await client
       .db()
-      .collection<Trip>("trips")
+      .collection<NewTrip>("trips")
       .updateOne({ _id: new ObjectId(tripId) }, { $push: { photos: photo } });
     res.status(200).json(photo);
   } catch (err) {
@@ -519,7 +506,7 @@ tripRouter.put("/like-trip/:tripId/:uid", async (req, res) => {
     const like: string = req.params.uid;
     await client
       .db()
-      .collection<Trip>("trips")
+      .collection<NewTrip>("trips")
       .updateOne({ _id: new ObjectId(tripId) }, { $push: { likesUids: like } });
     res.status(200).json(like);
   } catch (err) {
@@ -534,22 +521,8 @@ tripRouter.put("/unlike-trip/:tripId/:uid", async (req, res) => {
     const uid: string | undefined = req.params.uid;
     await client
       .db()
-      .collection<Trip>("trips")
+      .collection<NewTrip>("trips")
       .updateOne({ _id: new ObjectId(tripId) }, { $pull: { likesUids: uid } });
-    res.status(200).json("Success");
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-tripRouter.put("/remove-all-user-likes/:uid", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string = req.params.uid;
-    await client
-      .db()
-      .collection<Trip>("trips")
-      .updateMany({ likesUids: uid }, { $pull: { likesUids: uid } });
     res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
@@ -563,7 +536,7 @@ tripRouter.put("/comment-trip/:tripId", async (req, res) => {
     const comment: Comment = req.body;
     await client
       .db()
-      .collection<Trip>("trips")
+      .collection<NewTrip>("trips")
       .updateOne(
         { _id: new ObjectId(tripId) },
         { $push: { comments: comment } }
@@ -582,28 +555,12 @@ tripRouter.put("/remove-comment-trip/:tripId", async (req, res) => {
     const { uid, comment, date } = commentObject;
     await client
       .db()
-      .collection<Trip>("trips")
+      .collection<NewTrip>("trips")
       .updateOne(
         { _id: new ObjectId(tripId) },
         { $pull: { comments: { uid, comment, date } } }
       );
     res.status(200).json("Success");
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-tripRouter.put("/remove-all-user-comments/:uid", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string = req.params.uid;
-    await client
-      .db()
-      .collection<Trip>("trips")
-      .updateMany(
-        { comments: { $elemMatch: { uid } } },
-        { $pull: { comments: { uid } } }
-      );
   } catch (err) {
     errorResponse(err, res);
   }

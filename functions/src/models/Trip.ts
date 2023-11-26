@@ -1,5 +1,19 @@
 import { ObjectId } from "mongodb";
 
+export interface UserSummary {
+  uid: string;
+  username: string;
+  displayName: string;
+  photoURL: string;
+}
+
+export interface CitySummary {
+  _id: string;
+  cityName: string;
+  photoURL: string;
+  visitors: UserSummary[];
+}
+
 export interface Comment {
   uid: string;
   comment: string;
@@ -12,8 +26,13 @@ export interface Message {
   date: string;
 }
 
-export interface Participant {
+export interface NewParticipant {
   uid: string;
+  accepted: boolean;
+}
+
+export interface Participant {
+  user: UserSummary;
   accepted: boolean;
 }
 
@@ -45,10 +64,27 @@ interface SingleDaySchedule {
   event2Url: string;
 }
 
-export default interface Trip {
+export default interface NewTrip {
   _id?: ObjectId;
-  creatorUid: string;
   cityId: string;
+  creatorUid: string;
+  nickname: string;
+  startDate: string;
+  endDate: string;
+  hotel: string | null;
+  schedule: SingleDaySchedule[];
+  photos: string[];
+  participants: NewParticipant[];
+  messages: Message[];
+  completed: boolean;
+  likesUids: string[];
+  comments: Comment[];
+}
+
+export interface Trip {
+  _id?: string;
+  creator: UserSummary;
+  city: CitySummary;
   nickname: string;
   startDate: string;
   endDate: string;
@@ -58,6 +94,6 @@ export default interface Trip {
   participants: Participant[];
   messages: Message[];
   completed: boolean;
-  likesUids: string[];
+  likes: UserSummary[];
   comments: Comment[];
 }
