@@ -2,7 +2,7 @@ import express from "express";
 import { FindOptions, ObjectId } from "mongodb";
 import { getClient } from "../db";
 import City from "../models/City";
-import NewTrip, { Trip, Participant } from "../models/Trip";
+import TripTemplate, { Trip, Participant } from "../models/Trip";
 import { Notification, Preferences, UserTemplate } from "../models/UserProfile";
 
 const userRouter = express.Router();
@@ -38,6 +38,31 @@ userRouter.get("/user-by-uid/:uid/:date", async (req, res) => {
       .collection<UserTemplate>("users")
       .aggregate([
         { $match: { uid } },
+        {
+          $unwind: {
+            path: "$notifications",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        { $sort: { "notifications.date": -1 } },
+        {
+          $group: {
+            _id: "$_id",
+            uid: { $first: "$uid" },
+            username: { $first: "$username" },
+            displayName: { $first: "$displayName" },
+            email: { $first: "$email" },
+            phoneNumber: { $first: "$phoneNumber" },
+            photoURL: { $first: "$photoURL" },
+            hometownId: { $first: "$hometownId" },
+            preferences: { $first: "$preferences" },
+            followingUids: { $first: "$followingUids" },
+            favoriteCityIds: { $first: "$favoriteCityIds" },
+            hiddenCityIds: { $first: "$hiddenCityIds" },
+            notifications: { $push: "$notifications" },
+            visitedCityIds: { $first: "$visitedCityIds" },
+          },
+        },
         {
           $lookup: {
             from: "users",
@@ -208,6 +233,7 @@ userRouter.get("/user-by-uid/:uid/:date", async (req, res) => {
                   as: "likes",
                 },
               },
+              { $sort: { startDate: 1 } },
               {
                 $project: {
                   cityId: 0,
@@ -382,6 +408,7 @@ userRouter.get("/user-by-uid/:uid/:date", async (req, res) => {
                   as: "likes",
                 },
               },
+              { $sort: { endDate: -1 } },
               {
                 $project: {
                   cityId: 0,
@@ -644,13 +671,13 @@ userRouter.delete("/:uid", async (req, res) => {
         // deletes trip if user is the only participant
         client
           .db()
-          .collection<NewTrip>("trips")
+          .collection<TripTemplate>("trips")
           .deleteOne({ _id: new ObjectId(trip._id) });
       } else {
         // removes participant from the trip
         client
           .db()
-          .collection<NewTrip>("trips")
+          .collection<TripTemplate>("trips")
           .updateOne(
             { _id: new ObjectId(trip._id) },
             { $pull: { participants: { uid } } }
@@ -665,7 +692,7 @@ userRouter.delete("/:uid", async (req, res) => {
           if (newCreator) {
             client
               .db()
-              .collection<NewTrip>("trips")
+              .collection<TripTemplate>("trips")
               .updateOne(
                 { _id: new ObjectId(trip._id) },
                 { $set: { creatorUid: newCreator.user.uid } }
@@ -693,24 +720,6 @@ userRouter.delete("/:uid", async (req, res) => {
         );
     });
     res.sendStatus(204);
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-userRouter.put("/update-user-template/:uid", async (req, res) => {
-  try {
-    const client = await getClient();
-    const uid: string = req.params.uid;
-    const userProfile: UserTemplate = req.body;
-
-    userProfile._id = new ObjectId(userProfile._id);
-
-    await client
-      .db()
-      .collection<UserTemplate>("users")
-      .replaceOne({ uid }, userProfile);
-    res.status(200).json(userProfile);
   } catch (err) {
     errorResponse(err, res);
   }
