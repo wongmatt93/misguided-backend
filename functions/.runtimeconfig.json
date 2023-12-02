@@ -4,5 +4,9 @@
   },
   "yelp": {
     "key": "x5gb7ZfkYZDuM44f5DJ32ks3agOi6N41vekiyqoOONkmjGFAp-hHhYhOhPTgXrZJ7ltZN1wQdFFNKk5TDZHMlYceU3jVJ_ORw3HiBTnIlxIEDzieSTwJhiVAM-MDY3Yx"
+  },
+  "amadeus": {
+    "id": "H2iwdG7BHoL2Dx14CALGGkE1PYDUPuav",
+    "secret": "de0bVFY58kTy7sJN"
   }
 }

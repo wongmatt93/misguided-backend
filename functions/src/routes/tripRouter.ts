@@ -1,7 +1,11 @@
+import * as functions from "firebase-functions";
 import express from "express";
+import axios from "axios";
 import { ObjectId } from "mongodb";
 import { getClient } from "../db";
+
 import TripTemplate, { NewParticipant, Comment, Message } from "../models/Trip";
+import AmadeusResponse, { Hotel } from "../models/AmadeusResponse";
 
 const tripRouter = express.Router();
 
@@ -351,16 +355,193 @@ tripRouter.get("/followings-trips/:includedUids", async (req, res) => {
   }
 });
 
-tripRouter.post("/", async (req, res) => {
-  try {
-    const client = await getClient();
-    const newTrip: TripTemplate = req.body;
-    await client.db().collection<TripTemplate>("trips").insertOne(newTrip);
-    res.status(200).json(newTrip);
-  } catch (err) {
-    errorResponse(err, res);
+tripRouter.post(
+  "/:uid/:cityId/:cityName/:cityCode/:startDate/:endDate",
+  async (req, res) => {
+    try {
+      const client = await getClient();
+
+      const uid: string = req.params.uid;
+      const cityId: string = req.params.cityId;
+      const cityName: string = req.params.cityName;
+      const cityCode: string = req.params.cityCode;
+      const startDate: string = req.params.startDate;
+      const endDate: string = req.params.endDate;
+
+      const newTrip: TripTemplate = {
+        creatorUid: uid,
+        cityId,
+        nickname: "",
+        startDate,
+        endDate,
+        hotel: null,
+        schedule: [],
+        photos: [],
+        participants: [{ uid, accepted: true }],
+        messages: [],
+        completed: false,
+        likesUids: [],
+        comments: [],
+      };
+
+      // duration to see how many days and if hotel is needed
+      const duration: number =
+        endDate !== startDate
+          ? (Number(endDate) - Number(startDate)) / (1000 * 3600 * 24) + 1
+          : 1;
+
+      // schedule maker from yelp
+      const yelpKey: string = functions.config().yelp.key;
+      const schedule = [];
+
+      const breakfastOptions = (
+        await axios.get("https://api.yelp.com/v3/businesses/search", {
+          params: {
+            location: cityName,
+            limit: 50,
+            categories: "breakfast_brunch",
+            price: 1,
+          },
+          headers: {
+            Authorization: `Bearer ${yelpKey}`,
+          },
+        })
+      ).data.businesses;
+
+      const lunchAndDinnerOptions = (
+        await axios.get("https://api.yelp.com/v3/businesses/search", {
+          params: {
+            location: cityName,
+            limit: 50,
+            categories: "restaurants",
+            price: 1,
+          },
+          headers: {
+            Authorization: `Bearer ${yelpKey}`,
+          },
+        })
+      ).data.businesses;
+
+      const eventOptions = (
+        await axios.get("https://api.yelp.com/v3/businesses/search", {
+          params: {
+            location: cityName,
+            limit: 50,
+            categories: "arts",
+          },
+          headers: {
+            Authorization: `Bearer ${yelpKey}`,
+          },
+        })
+      ).data.businesses;
+
+      for (let i = 0; i < duration; i++) {
+        const breakfastIndex: number = Math.floor(
+          Math.random() * breakfastOptions.length
+        );
+        let lunchAndDinnerIndex: number = Math.floor(
+          Math.random() * lunchAndDinnerOptions.length
+        );
+        let activitiesIndex: number = Math.floor(
+          Math.random() * eventOptions.length
+        );
+
+        const breakfast = breakfastOptions[breakfastIndex];
+        breakfastOptions.splice(breakfastIndex, 1);
+
+        const lunch = lunchAndDinnerOptions[lunchAndDinnerIndex];
+        lunchAndDinnerOptions.splice(lunchAndDinnerIndex, 1);
+        lunchAndDinnerIndex = Math.floor(
+          Math.random() * lunchAndDinnerOptions.length
+        );
+
+        const dinner = lunchAndDinnerOptions[lunchAndDinnerIndex];
+        lunchAndDinnerOptions.splice(lunchAndDinnerIndex, 1);
+
+        const firstActivity = eventOptions[activitiesIndex];
+        eventOptions.splice(activitiesIndex, 1);
+        activitiesIndex = Math.floor(Math.random() * eventOptions.length);
+
+        const secondActivity = eventOptions[activitiesIndex];
+        eventOptions.splice(activitiesIndex, 1);
+
+        schedule.push({
+          breakfast: breakfast.name,
+          breakfastPhoto: breakfast.image_url,
+          breakfastAddress: breakfast.location.display_address,
+          breakfastPhone: breakfast.display_phone,
+          breakfastUrl: breakfast.url,
+          lunch: lunch.name,
+          lunchPhoto: lunch.image_url,
+          lunchAddress: lunch.location.display_address,
+          lunchPhone: lunch.display_phone,
+          lunchURL: lunch.url,
+          dinner: dinner.name,
+          dinnerPhoto: dinner.image_url,
+          dinnerAddress: dinner.location.display_address,
+          dinnerPhone: dinner.display_phone,
+          dinnerUrl: dinner.url,
+          event1: firstActivity.name,
+          event1Photo: firstActivity.image_url,
+          event1Address: firstActivity.location.display_address,
+          event1Phone: firstActivity.display_phone,
+          event1Url: firstActivity.url,
+          event2: secondActivity.name,
+          event2Photo: secondActivity.image_url,
+          event2Address: secondActivity.location.display_address,
+          event2Phone: secondActivity.display_phone,
+          event2Url: secondActivity.url,
+        });
+      }
+
+      newTrip.schedule = schedule;
+
+      // hotel getter if duration > 1
+      if (duration > 1) {
+        let token: string | null = null;
+        const id: string = functions.config().amadeus.id;
+        const secret: string = functions.config().amadeus.secret;
+
+        if (!token) {
+          token = (
+            await axios.post(
+              "https://test.api.amadeus.com/v1/security/oauth2/token",
+              `grant_type=client_credentials&client_id=${id}&client_secret=${secret}`,
+              {
+                headers: {
+                  "Content-Type": "application/x-www-form-urlencoded",
+                },
+              }
+            )
+          ).data.access_token;
+        }
+
+        const amadeusHotels: AmadeusResponse = (
+          await axios.get(
+            "https://test.api.amadeus.com/v1/reference-data/locations/hotels/by-city",
+            {
+              params: { cityCode, ratings: "1,2", radius: 30 },
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          )
+        ).data;
+
+        const hotels: Hotel[] = amadeusHotels.data;
+
+        const hotelIndex: number = Math.floor(Math.random()) * hotels.length;
+
+        newTrip.hotel = hotels[hotelIndex].name;
+      }
+
+      await client.db().collection<TripTemplate>("trips").insertOne(newTrip);
+      res.status(200).json(newTrip);
+    } catch (err) {
+      errorResponse(err, res);
+    }
   }
-});
+);
 
 tripRouter.delete("/:tripId", async (req, res) => {
   try {
