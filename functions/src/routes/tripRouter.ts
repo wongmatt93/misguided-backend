@@ -1,12 +1,7 @@
 import express from "express";
 import { ObjectId } from "mongodb";
 import { getClient } from "../db";
-import TripTemplate, {
-  NewParticipant,
-  Comment,
-  Message,
-  Trip,
-} from "../models/Trip";
+import TripTemplate, { NewParticipant, Comment, Message } from "../models/Trip";
 
 const tripRouter = express.Router();
 
