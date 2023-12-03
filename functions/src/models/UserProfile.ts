@@ -5,7 +5,7 @@ export interface Notification {
   type: string;
   date: string;
   read: boolean;
-  tripId: string;
+  tripId: string | null;
 }
 
 export interface Preferences {
@@ -31,7 +31,7 @@ export interface Preferences {
   shopping: boolean;
 }
 
-export interface UserTemplate {
+export interface UserProfile {
   _id?: ObjectId;
   uid: string;
   username: string | null;
@@ -45,12 +45,4 @@ export interface UserTemplate {
   favoriteCityIds: string[];
   hiddenCityIds: string[];
   notifications: Notification[];
-  visitedCityIds: string[];
-}
-
-export interface UserSummary {
-  uid: string;
-  username: string;
-  displayName: string;
-  photoURL: string;
 }

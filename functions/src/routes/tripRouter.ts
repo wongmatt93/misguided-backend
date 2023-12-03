@@ -4,7 +4,7 @@ import axios from "axios";
 import { ObjectId } from "mongodb";
 import { getClient } from "../db";
 
-import TripTemplate, { NewParticipant, Comment, Message } from "../models/Trip";
+import Trip, { Comment, Message, Participant } from "../models/Trip";
 import AmadeusResponse, { Hotel } from "../models/AmadeusResponse";
 
 const tripRouter = express.Router();
@@ -20,7 +20,7 @@ tripRouter.get("/full-trip/:tripId", async (req, res) => {
     const tripId: string = req.params.tripId;
     const results = await client
       .db()
-      .collection<TripTemplate>("trips")
+      .collection<Trip>("trips")
       .aggregate([
         { $match: { _id: new ObjectId(tripId) } },
 
@@ -187,7 +187,7 @@ tripRouter.get("/followings-trips/:includedUids", async (req, res) => {
     const includedUids: string[] = req.params.includedUids.split(",");
     const results = await client
       .db()
-      .collection<TripTemplate>("trips")
+      .collection<Trip>("trips")
       .aggregate([
         {
           $match: {
@@ -368,7 +368,7 @@ tripRouter.post(
       const startDate: string = req.params.startDate;
       const endDate: string = req.params.endDate;
 
-      const newTrip: TripTemplate = {
+      const newTrip: Trip = {
         creatorUid: uid,
         cityId,
         nickname: "",
@@ -535,8 +535,8 @@ tripRouter.post(
         newTrip.hotel = hotels[hotelIndex].name;
       }
 
-      await client.db().collection<TripTemplate>("trips").insertOne(newTrip);
-      res.status(200).json(newTrip);
+      await client.db().collection<Trip>("trips").insertOne(newTrip);
+      res.status(200).json(newTrip._id?.toString());
     } catch (err) {
       errorResponse(err, res);
     }
@@ -549,7 +549,7 @@ tripRouter.delete("/:tripId", async (req, res) => {
     const tripId: string = req.params.tripId;
     await client
       .db()
-      .collection<TripTemplate>("trips")
+      .collection<Trip>("trips")
       .deleteOne({ _id: new ObjectId(tripId) });
     res.sendStatus(204);
   } catch (err) {
@@ -564,7 +564,7 @@ tripRouter.put("/update-nickname/:tripId/:nickname", async (req, res) => {
     const nickname: string | undefined = req.params.nickname;
     await client
       .db()
-      .collection<TripTemplate>("trips")
+      .collection<Trip>("trips")
       .updateOne({ _id: new ObjectId(tripId) }, { $set: { nickname } });
     res.status(200).json(nickname);
   } catch (err) {
@@ -572,14 +572,15 @@ tripRouter.put("/update-nickname/:tripId/:nickname", async (req, res) => {
   }
 });
 
-tripRouter.put("/new-participant/:tripId", async (req, res) => {
+tripRouter.put("/new-participant/:tripId/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string | undefined = req.params.tripId;
-    const newParticipant: NewParticipant = req.body;
+    const uid: string | undefined = req.params.uid;
+    const newParticipant: Participant = { uid, accepted: false };
     await client
       .db()
-      .collection<TripTemplate>("trips")
+      .collection<Trip>("trips")
       .updateOne(
         { _id: new ObjectId(tripId) },
         { $push: { participants: newParticipant } }
@@ -598,7 +599,7 @@ tripRouter.put("/accept-trip/:tripId/:uid", async (req, res) => {
     const uid: string = req.params.uid;
     await client
       .db()
-      .collection<TripTemplate>("trips")
+      .collection<Trip>("trips")
       .updateOne(
         { _id: new ObjectId(tripId) },
         { $set: { [`participants.$[participant].accepted`]: true } },
@@ -617,7 +618,7 @@ tripRouter.put("/remove-participant/:tripId/:uid", async (req, res) => {
     const uid: string | undefined = req.params.uid;
     await client
       .db()
-      .collection<TripTemplate>("trips")
+      .collection<Trip>("trips")
       .updateOne(
         { _id: new ObjectId(tripId) },
         { $pull: { participants: { uid } } }
@@ -635,7 +636,7 @@ tripRouter.put("/new-message/:tripId", async (req, res) => {
     const newMessage: Message = req.body;
     await client
       .db()
-      .collection<TripTemplate>("trips")
+      .collection<Trip>("trips")
       .updateOne(
         { _id: new ObjectId(tripId) },
         { $push: { messages: newMessage } }
@@ -652,7 +653,7 @@ tripRouter.put("/complete-trip/:tripId", async (req, res) => {
     const tripId: string | undefined = req.params.tripId;
     await client
       .db()
-      .collection<TripTemplate>("trips")
+      .collection<Trip>("trips")
       .updateOne({ _id: new ObjectId(tripId) }, { $set: { completed: true } });
     res.status(200).json("Success");
   } catch (err) {
@@ -667,7 +668,7 @@ tripRouter.put("/photos/:tripId", async (req, res) => {
     const photo: string = req.body.photo;
     await client
       .db()
-      .collection<TripTemplate>("trips")
+      .collection<Trip>("trips")
       .updateOne({ _id: new ObjectId(tripId) }, { $push: { photos: photo } });
     res.status(200).json(photo);
   } catch (err) {
@@ -682,7 +683,7 @@ tripRouter.put("/like-trip/:tripId/:uid", async (req, res) => {
     const like: string = req.params.uid;
     await client
       .db()
-      .collection<TripTemplate>("trips")
+      .collection<Trip>("trips")
       .updateOne({ _id: new ObjectId(tripId) }, { $push: { likesUids: like } });
     res.status(200).json(like);
   } catch (err) {
@@ -697,7 +698,7 @@ tripRouter.put("/unlike-trip/:tripId/:uid", async (req, res) => {
     const uid: string | undefined = req.params.uid;
     await client
       .db()
-      .collection<TripTemplate>("trips")
+      .collection<Trip>("trips")
       .updateOne({ _id: new ObjectId(tripId) }, { $pull: { likesUids: uid } });
     res.status(200).json("Success");
   } catch (err) {
@@ -705,38 +706,46 @@ tripRouter.put("/unlike-trip/:tripId/:uid", async (req, res) => {
   }
 });
 
-tripRouter.put("/comment-trip/:tripId", async (req, res) => {
+tripRouter.put("/comment-trip/:tripId/:uid/:date", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string | undefined = req.params.tripId;
-    const comment: Comment = req.body;
+    const uid: string | undefined = req.params.uid;
+    const date: string | undefined = req.params.date;
+    const comment: string = req.body.comment;
+    const newComment: Comment = {
+      uid,
+      comment,
+      date,
+    };
     await client
       .db()
-      .collection<TripTemplate>("trips")
+      .collection<Trip>("trips")
       .updateOne(
         { _id: new ObjectId(tripId) },
-        { $push: { comments: comment } }
+        { $push: { comments: newComment } }
       );
-    res.status(200).json(comment);
+    res.status(200).json("Successfully added comment to trip.");
   } catch (err) {
     errorResponse(err, res);
   }
 });
 
-tripRouter.put("/remove-comment-trip/:tripId", async (req, res) => {
+tripRouter.put("/remove-comment-trip/:tripId/:uid/:date", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string | undefined = req.params.tripId;
-    const commentObject: Comment = req.body;
-    const { uid, comment, date } = commentObject;
+    const uid: string | undefined = req.params.uid;
+    const date: string | undefined = req.params.date;
+    const comment: string = req.body.comment;
     await client
       .db()
-      .collection<TripTemplate>("trips")
+      .collection<Trip>("trips")
       .updateOne(
         { _id: new ObjectId(tripId) },
         { $pull: { comments: { uid, comment, date } } }
       );
-    res.status(200).json("Success");
+    res.status(200).json("Successfully removed comment from trip");
   } catch (err) {
     errorResponse(err, res);
   }
