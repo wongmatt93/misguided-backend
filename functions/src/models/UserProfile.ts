@@ -5,7 +5,7 @@ export interface Notification {
   type: string;
   date: string;
   read: boolean;
-  tripId?: string;
+  tripId: string | null;
 }
 
 export interface Preferences {

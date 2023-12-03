@@ -712,7 +712,7 @@ tripRouter.put("/comment-trip/:tripId/:uid/:date", async (req, res) => {
     const tripId: string | undefined = req.params.tripId;
     const uid: string | undefined = req.params.uid;
     const date: string | undefined = req.params.date;
-    const comment: string = req.body;
+    const comment: string = req.body.comment;
     const newComment: Comment = {
       uid,
       comment,
@@ -737,7 +737,7 @@ tripRouter.put("/remove-comment-trip/:tripId/:uid/:date", async (req, res) => {
     const tripId: string | undefined = req.params.tripId;
     const uid: string | undefined = req.params.uid;
     const date: string | undefined = req.params.date;
-    const comment: string = req.body;
+    const comment: string = req.body.comment;
     await client
       .db()
       .collection<Trip>("trips")

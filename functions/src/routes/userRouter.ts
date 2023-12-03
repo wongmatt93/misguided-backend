@@ -609,43 +609,16 @@ userRouter.get("/:username/:search/search", async (req, res) => {
 });
 
 // This endpoint takes in a UserProfile object and adds it to the database
-userRouter.post(
-  "/:uid/:username/:displayName/:email/:phoneNumber/:photoURL/:hometownId",
-  async (req, res) => {
-    try {
-      const client = await getClient();
-
-      const uid: string = req.params.uid;
-      const username: string = req.params.username;
-      const displayName: string = req.params.displayName;
-      const email: string = req.params.email;
-      const phoneNumber: string = req.params.phoneNumber;
-      const photoURL: string = req.params.photoURL;
-      const hometownId: string = req.params.hometownId;
-      const preferences: Preferences = req.body;
-
-      const newProfile: UserProfile = {
-        uid,
-        username,
-        displayName,
-        email,
-        phoneNumber,
-        photoURL,
-        hometownId,
-        preferences,
-        followingUids: [],
-        notifications: [],
-        favoriteCityIds: [],
-        hiddenCityIds: [],
-      };
-
-      await client.db().collection<UserProfile>("users").insertOne(newProfile);
-      res.status(201).json("Profile Successfully Added!");
-    } catch (err) {
-      errorResponse(err, res);
-    }
+userRouter.post("/", async (req, res) => {
+  try {
+    const client = await getClient();
+    const newUser: UserProfile = req.body.newUser;
+    await client.db().collection<UserProfile>("users").insertOne(newUser);
+    res.status(201).json("Profile Successfully Added!");
+  } catch (err) {
+    errorResponse(err, res);
   }
-);
+});
 
 // This endpoint deletes a UserProfile from the database
 userRouter.delete("/:uid", async (req, res) => {
@@ -790,14 +763,14 @@ userRouter.put(
       const notifUserUid: string | undefined = req.params.notifUserUid;
       const type: string | undefined = req.params.type;
       const date: string | undefined = req.params.date;
-      const tripId: string | null = req.body;
+      const tripId: string | null = req.body.tripId;
 
       const notification: Notification = {
         uid: notifUserUid,
         type,
         date,
         read: false,
-        tripId: tripId || "",
+        tripId,
       };
 
       await client
