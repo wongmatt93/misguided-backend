@@ -6,6 +6,7 @@ import { getClient } from "../db";
 
 import Trip, { Comment, Message, Participant } from "../models/Trip";
 import AmadeusResponse, { Hotel } from "../models/AmadeusResponse";
+import { addNotificationQuery } from "../queries/userQueries";
 
 const tripRouter = express.Router();
 
@@ -572,12 +573,15 @@ tripRouter.put("/update-nickname/:tripId/:nickname", async (req, res) => {
   }
 });
 
-tripRouter.put("/new-participant/:tripId/:uid", async (req, res) => {
+tripRouter.put("/new-participant/:tripId/:friend/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string | undefined = req.params.tripId;
+    const friend: string | undefined = req.params.friend;
     const uid: string | undefined = req.params.uid;
-    const newParticipant: Participant = { uid, accepted: false };
+    const newParticipant: Participant = { uid: friend, accepted: false };
+    const currentDateString: string = new Date().getTime().toString();
+
     await client
       .db()
       .collection<Trip>("trips")
@@ -585,6 +589,16 @@ tripRouter.put("/new-participant/:tripId/:uid", async (req, res) => {
         { _id: new ObjectId(tripId) },
         { $push: { participants: newParticipant } }
       );
+
+    await addNotificationQuery(
+      client,
+      friend,
+      uid,
+      "tripRequest",
+      currentDateString,
+      tripId
+    );
+
     res.status(200);
     res.json(newParticipant);
   } catch (err) {
@@ -592,11 +606,14 @@ tripRouter.put("/new-participant/:tripId/:uid", async (req, res) => {
   }
 });
 
-tripRouter.put("/accept-trip/:tripId/:uid", async (req, res) => {
+tripRouter.put("/accept-trip/:tripId/:uid/:otherUid", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string = req.params.tripId;
     const uid: string = req.params.uid;
+    const otherUid: string = req.params.otherUid;
+    const currentDateString: string = new Date().getTime().toString();
+
     await client
       .db()
       .collection<Trip>("trips")
@@ -605,35 +622,64 @@ tripRouter.put("/accept-trip/:tripId/:uid", async (req, res) => {
         { $set: { [`participants.$[participant].accepted`]: true } },
         { arrayFilters: [{ "participant.uid": uid }] }
       );
+
+    await addNotificationQuery(
+      client,
+      otherUid,
+      uid,
+      "tripAccept",
+      currentDateString,
+      tripId
+    );
+
     res.status(200).json("Success");
   } catch (err) {
     errorResponse(err, res);
   }
 });
 
-tripRouter.put("/remove-participant/:tripId/:uid", async (req, res) => {
+tripRouter.put(
+  "/remove-participant/:tripId/:uid/:otherUid",
+  async (req, res) => {
+    try {
+      const client = await getClient();
+      const tripId: string | undefined = req.params.tripId;
+      const uid: string | undefined = req.params.uid;
+      const otherUid: string | undefined = req.params.otherUid;
+      const currentDateString: string = new Date().getTime().toString();
+
+      await client
+        .db()
+        .collection<Trip>("trips")
+        .updateOne(
+          { _id: new ObjectId(tripId) },
+          { $pull: { participants: { uid } } }
+        );
+
+      await addNotificationQuery(
+        client,
+        otherUid,
+        uid,
+        "tripDecline",
+        currentDateString,
+        tripId
+      );
+
+      res.status(200).json("Success");
+    } catch (err) {
+      errorResponse(err, res);
+    }
+  }
+);
+
+tripRouter.put("/new-message/:tripId/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string | undefined = req.params.tripId;
     const uid: string | undefined = req.params.uid;
-    await client
-      .db()
-      .collection<Trip>("trips")
-      .updateOne(
-        { _id: new ObjectId(tripId) },
-        { $pull: { participants: { uid } } }
-      );
-    res.status(200).json("Success");
-  } catch (err) {
-    errorResponse(err, res);
-  }
-});
-
-tripRouter.put("/new-message/:tripId", async (req, res) => {
-  try {
-    const client = await getClient();
-    const tripId: string | undefined = req.params.tripId;
     const newMessage: Message = req.body;
+    const currentDateString: string = new Date().getTime().toString();
+
     await client
       .db()
       .collection<Trip>("trips")
@@ -641,6 +687,26 @@ tripRouter.put("/new-message/:tripId", async (req, res) => {
         { _id: new ObjectId(tripId) },
         { $push: { messages: newMessage } }
       );
+
+    const trip = await client
+      .db()
+      .collection<Trip>("trips")
+      .findOne(
+        { _id: new ObjectId(tripId) },
+        { projection: { participants: 1 } }
+      );
+
+    trip?.participants.forEach((participant) => {
+      addNotificationQuery(
+        client,
+        participant.uid,
+        uid,
+        "tripMessage",
+        currentDateString,
+        tripId
+      );
+    });
+
     res.status(200).json(newMessage);
   } catch (err) {
     errorResponse(err, res);
