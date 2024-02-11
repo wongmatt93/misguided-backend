@@ -5,6 +5,7 @@ import City from "../models/City";
 import Trip, { ParticipantSummary, TripSummary } from "../models/Trip";
 import { Preferences, UserProfile } from "../models/UserProfile";
 import { addNotificationQuery, tripsQuery } from "../queries/userQueries";
+import { currentDateString } from "../utils/dateFunctions";
 
 const userRouter = express.Router();
 
@@ -29,11 +30,10 @@ const errorResponse = (error: any, res: any) => {
 // });
 
 // This endpoint takes in a uid and date, and returns a UserProfile
-userRouter.get("/user-by-uid/:uid/:date", async (req, res) => {
+userRouter.get("/user-by-uid/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const uid: string = req.params.uid;
-    const date: string = req.params.date;
     const result = await client
       .db()
       .collection<UserProfile>("users")
@@ -90,8 +90,8 @@ userRouter.get("/user-by-uid/:uid/:date", async (req, res) => {
             as: "followings",
           },
         },
-        tripsQuery("upcomingTrips", date),
-        tripsQuery("pastTrips", date),
+        tripsQuery("upcomingTrips"),
+        tripsQuery("pastTrips"),
         {
           $lookup: {
             from: "cities",
@@ -382,7 +382,6 @@ userRouter.put("/add-following/:userUid/:otherUid", async (req, res) => {
     const client = await getClient();
     const uid: string | undefined = req.params.userUid;
     const newFollowing: string | undefined = req.params.otherUid;
-    const currentDateString: string = new Date().getTime().toString();
     await client
       .db()
       .collection<UserProfile>("users")

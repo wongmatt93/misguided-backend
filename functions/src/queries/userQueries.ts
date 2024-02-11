@@ -1,7 +1,8 @@
 import { UserProfile, Notification } from "../models/UserProfile";
 import { MongoClient } from "mongodb";
+import { currentDateString } from "../utils/dateFunctions";
 
-export const tripsQuery = (tripType: string, date: string) => {
+export const tripsQuery = (tripType: string) => {
   return {
     $lookup: {
       from: "trips",
@@ -10,7 +11,9 @@ export const tripsQuery = (tripType: string, date: string) => {
         {
           $match: {
             endDate:
-              tripType === "upcomingTrips" ? { $gt: date } : { $lt: date },
+              tripType === "upcomingTrips"
+                ? { $gt: currentDateString }
+                : { $lt: currentDateString },
             $expr: { $in: ["$$uid", "$participants.uid"] },
           },
         },

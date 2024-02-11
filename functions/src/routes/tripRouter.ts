@@ -7,6 +7,7 @@ import { getClient } from "../db";
 import Trip, { Comment, Message, Participant } from "../models/Trip";
 import AmadeusResponse, { Hotel } from "../models/AmadeusResponse";
 import { addNotificationQuery } from "../queries/userQueries";
+import { currentDateString } from "../utils/dateFunctions";
 
 const tripRouter = express.Router();
 
@@ -580,7 +581,6 @@ tripRouter.put("/new-participant/:tripId/:friend/:uid", async (req, res) => {
     const friend: string | undefined = req.params.friend;
     const uid: string | undefined = req.params.uid;
     const newParticipant: Participant = { uid: friend, accepted: false };
-    const currentDateString: string = new Date().getTime().toString();
 
     await client
       .db()
@@ -612,7 +612,6 @@ tripRouter.put("/accept-trip/:tripId/:uid/:otherUid", async (req, res) => {
     const tripId: string = req.params.tripId;
     const uid: string = req.params.uid;
     const otherUid: string = req.params.otherUid;
-    const currentDateString: string = new Date().getTime().toString();
 
     await client
       .db()
@@ -646,7 +645,6 @@ tripRouter.put(
       const tripId: string | undefined = req.params.tripId;
       const uid: string | undefined = req.params.uid;
       const otherUid: string | undefined = req.params.otherUid;
-      const currentDateString: string = new Date().getTime().toString();
 
       await client
         .db()
@@ -678,7 +676,6 @@ tripRouter.put("/new-message/:tripId/:uid", async (req, res) => {
     const tripId: string | undefined = req.params.tripId;
     const uid: string | undefined = req.params.uid;
     const newMessage: Message = req.body;
-    const currentDateString: string = new Date().getTime().toString();
 
     await client
       .db()
@@ -772,17 +769,16 @@ tripRouter.put("/unlike-trip/:tripId/:uid", async (req, res) => {
   }
 });
 
-tripRouter.put("/comment-trip/:tripId/:uid/:date", async (req, res) => {
+tripRouter.put("/comment-trip/:tripId/:uid", async (req, res) => {
   try {
     const client = await getClient();
     const tripId: string | undefined = req.params.tripId;
     const uid: string | undefined = req.params.uid;
-    const date: string | undefined = req.params.date;
     const comment: string = req.body.comment;
     const newComment: Comment = {
       uid,
       comment,
-      date,
+      date: currentDateString,
     };
     await client
       .db()
